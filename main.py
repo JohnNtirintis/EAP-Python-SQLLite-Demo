@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from db_app.bootstrap import create_dal
+from app.bootstrap import create_dal
 
 # TODO
 #from app.bootstrap import create_business_logic
