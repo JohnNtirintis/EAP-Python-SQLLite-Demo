@@ -4,6 +4,11 @@ from pathlib import Path
 
 from .dal import LibraryDAL
 from .database import DatabaseManager
+from .business_logic import BusinessLogic
+
+def create_business_logic(dal: LibraryDAL) -> BusinessLogic:
+    """Return the high-level business logic layer."""
+    return BusinessLogic(dal)
 
 
 def create_dal(db_path: Path) -> LibraryDAL:
