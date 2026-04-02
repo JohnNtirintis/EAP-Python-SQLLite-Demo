@@ -29,6 +29,23 @@ class LibraryBusinessLogic:
     # 3. Δημιουργία registration number
     registration_number = self._next_registration_number()
     # 4. Κλήση DAL
+    member_id = self.dal.add_member(
+      full_name=normalized.full_name,
+      registration_number=registration_number,
+      address=normalized.address or "",
+      phone=normalized.phone or "",
+      email=normalized.email or "",
+      age=normalized.age,
+      profession=normalized.profession or "",
+      gender=normalized.gender or "Other",
+    # 5. Επιστροφή αποτελέσματος
+    return member_id
+
+ def _next_registration_number(self) -> str:
+   """Δημιουργεί νέο μοναδικό αριθμό μέλους."""
+   members = self.dal.list_numbers()
+   max_id = max((int(member["id"]) for member in memebrs), default=0)
+   return f"M-{1000 + max_id + 1}"
 
 
 
