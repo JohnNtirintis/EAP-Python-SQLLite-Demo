@@ -47,6 +47,20 @@ class LibraryBusinessLogic:
    max_id = max((int(member["id"]) for member in memebrs), default=0)
    return f"M-{1000 + max_id + 1}"
 
+def update_member(self, member_id: int, dto: UpdateMemberDTO):
+  normalized = self._normalized_member(dto)
+  self.dal.update_member(
+    member_id=member_id,
+    full_name=normalized.full_name,
+    address=normalized.address or "",
+    phone=normalized.phone or "",
+    email=normalized.email or "",
+    age=normalized.age,
+    profession=normalized.profession or "",
+    gender=normalized.gender or "Other",
+  )
+   
+  
 
 
     
