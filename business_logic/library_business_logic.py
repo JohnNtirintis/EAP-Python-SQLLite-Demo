@@ -59,6 +59,12 @@ def update_member(self, member_id: int, dto: UpdateMemberDTO):
     profession=normalized.profession or "",
     gender=normalized.gender or "Other",
   )
+
+def deactivate_member(self, member_id: int):
+  self.dal.deactivate_member(member_id)
+
+def renew_membership(self, member_id: int):
+  self.dal.renew_membership(member_id)
    
   
 
