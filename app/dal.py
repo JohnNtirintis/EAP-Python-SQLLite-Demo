@@ -476,3 +476,107 @@ class LibraryDAL:
                 "ON CONFLICT(member_id, book_id) DO UPDATE SET rating = excluded.rating, rated_at = CURRENT_TIMESTAMP;",
                 (member_id, book_id, rating),
             )
+
+    # ---------------------------------------------------------
+    # STATISTICS
+    # ---------------------------------------------------------
+    def count_loans_by_member_in_period(self, member_id, start_date, end_date):
+        """
+        Πλήθος βιβλίων ανά μέλος σε χρονική περίοδο.
+        """
+        sql = """
+            SELECT COUNT(*) AS total
+            FROM loans
+            WHERE member_id = ?
+              AND loan_date BETWEEN ? AND ?
+        """
+        row = self.db.query_one(sql, (member_id, start_date, end_date))
+        return row["total"] if row else 0
+
+    def member_category_distribution_in_period(self, member_id, start_date, end_date):
+        """
+        Κατανομή προτιμήσεων δανεισμού ανά μέλος ανά κατηγορία.
+        """
+        sql = """
+            SELECT c.name AS category, COUNT(*) AS total
+            FROM loans l
+            JOIN books b ON l.book_id = b.id
+            JOIN categories c ON b.category_id = c.id
+            WHERE l.member_id = ?
+              AND l.loan_date BETWEEN ? AND ?
+            GROUP BY c.name
+            ORDER BY total DESC
+        """
+        rows = self.db.query_all(sql, (member_id, start_date, end_date))
+        return [(r["category"], r["total"]) for r in rows]
+
+    def category_distribution_in_period(self, start_date, end_date):
+        """
+        Κατανομή προτιμήσεων όλων των μελών ανά κατηγορία.
+        """
+        sql = """
+            SELECT c.name AS category, COUNT(*) AS total
+            FROM loans l
+            JOIN books b ON l.book_id = b.id
+            JOIN categories c ON b.category_id = c.id
+            WHERE l.loan_date BETWEEN ? AND ?
+            GROUP BY c.name
+            ORDER BY total DESC
+        """
+        rows = self.db.query_all(sql, (start_date, end_date))
+        return [(r["category"], r["total"]) for r in rows]
+
+    def member_loan_history(self, member_id):
+        """
+        Ιστορικό δανεισμού ανά μέλος.
+        """
+        sql = """
+            SELECT b.title, l.loan_date, l.return_date
+            FROM loans l
+            JOIN books b ON l.book_id = b.id
+            WHERE l.member_id = ?
+            ORDER BY l.loan_date DESC
+        """
+        rows = self.db.query_all(sql, (member_id,))
+        return [(r["title"], r["loan_date"], r["return_date"]) for r in rows]
+
+    def loans_per_author(self):
+        """
+        Πλήθος δανεισμών ανά συγγραφέα.
+        """
+        sql = """
+            SELECT b.author AS author, COUNT(*) AS total
+            FROM loans l
+            JOIN books b ON l.book_id = b.id
+            GROUP BY b.author
+            ORDER BY total DESC
+        """
+        rows = self.db.query_all(sql)
+        return [(r["author"], r["total"]) for r in rows]
+
+    def loans_per_age(self):
+        """
+        Πλήθος δανεισμών ανά ηλικία.
+        """
+        sql = """
+            SELECT m.age AS age, COUNT(*) AS total
+            FROM loans l
+            JOIN members m ON l.member_id = m.id
+            GROUP BY m.age
+            ORDER BY m.age
+        """
+        rows = self.db.query_all(sql)
+        return [(r["age"], r["total"]) for r in rows]
+
+    def loans_per_gender(self):
+        """
+        Πλήθος δανεισμών ανά φύλο.
+        """
+        sql = """
+            SELECT m.gender AS gender, COUNT(*) AS total
+            FROM loans l
+            JOIN members m ON l.member_id = m.id
+            GROUP BY m.gender
+        """
+        rows = self.db.query_all(sql)
+        return [(r["gender"], r["total"]) for r in rows]
