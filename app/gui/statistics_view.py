@@ -4,13 +4,7 @@ from tkinter import ttk, messagebox
 
 class StatisticsView(ttk.Frame):
     """
-    Statistics tab — DTO compatible.
-    Displays:
-    - Start date
-    - End date
-    - Member ID (optional)
-    - Buttons for each statistic
-    - Output area
+    Statistics tab — δείχνει διάφορα στατιστικά δανεισμών.
     """
 
     def __init__(self, parent, logic):
@@ -18,118 +12,218 @@ class StatisticsView(ttk.Frame):
         self.logic = logic
 
         # ---------------------------------------------------------
-        # SECTION: Filters
+        # PERIOD FILTER
         # ---------------------------------------------------------
-        filter_frame = ttk.LabelFrame(self, text="Filters")
-        filter_frame.pack(fill="x", padx=10, pady=10)
+        period_frame = ttk.LabelFrame(self, text="Period filter (YYYY-MM-DD)")
+        period_frame.pack(fill="x", padx=10, pady=10)
 
-        # Start date
-        ttk.Label(filter_frame, text="Start date (YYYY-MM-DD):").grid(row=0, column=0, sticky="e", padx=5, pady=3)
-        self.entry_start = ttk.Entry(filter_frame, width=20)
-        self.entry_start.grid(row=0, column=1, sticky="w")
-        self.entry_start.insert(0, "2026-01-01")
+        ttk.Label(period_frame, text="Start date:").grid(row=0, column=0, padx=5, pady=3, sticky="e")
+        self.entry_start = ttk.Entry(period_frame, width=12)
+        self.entry_start.grid(row=0, column=1, padx=5, pady=3, sticky="w")
 
-        # End date
-        ttk.Label(filter_frame, text="End date (YYYY-MM-DD):").grid(row=0, column=2, sticky="e", padx=5)
-        self.entry_end = ttk.Entry(filter_frame, width=20)
-        self.entry_end.grid(row=0, column=3, sticky="w")
-        self.entry_end.insert(0, "2026-12-31")
+        ttk.Label(period_frame, text="End date:").grid(row=0, column=2, padx=5, pady=3, sticky="e")
+        self.entry_end = ttk.Entry(period_frame, width=12)
+        self.entry_end.grid(row=0, column=3, padx=5, pady=3, sticky="w")
 
-        # Member ID
-        ttk.Label(filter_frame, text="Member ID (for member-specific stats):").grid(
-            row=1, column=0, sticky="e", padx=5, pady=3
+        # ---------------------------------------------------------
+        # MEMBER SELECTION
+        # ---------------------------------------------------------
+        member_frame = ttk.LabelFrame(self, text="Member")
+        member_frame.pack(fill="x", padx=10, pady=5)
+
+        ttk.Label(member_frame, text="Member:").grid(row=0, column=0, padx=5, pady=3, sticky="e")
+        self.entry_member = ttk.Combobox(
+            member_frame,
+            values=[f"{m.id} - {m.full_name}" for m in self.logic.list_members()],
+            width=40,
+            state="readonly"
         )
-        self.entry_member_id = ttk.Entry(filter_frame, width=20)
-        self.entry_member_id.grid(row=1, column=1, sticky="w")
+        self.entry_member.grid(row=0, column=1, padx=5, pady=3, sticky="w")
+
+        ttk.Button(
+            member_frame,
+            text="Loans count in period",
+            command=self.show_member_loans_in_period
+        ).grid(row=0, column=2, padx=5, pady=3)
+
+        ttk.Button(
+            member_frame,
+            text="Member category distribution",
+            command=self.show_member_category_distribution
+        ).grid(row=0, column=3, padx=5, pady=3)
+
+        ttk.Button(
+            member_frame,
+            text="Member loan history",
+            command=self.show_member_loan_history
+        ).grid(row=0, column=4, padx=5, pady=3)
 
         # ---------------------------------------------------------
-        # SECTION: Buttons
+        # GLOBAL STATS BUTTONS
         # ---------------------------------------------------------
-        btn_frame = ttk.Frame(self)
-        btn_frame.pack(fill="x", padx=10, pady=5)
+        global_frame = ttk.LabelFrame(self, text="Global statistics")
+        global_frame.pack(fill="x", padx=10, pady=5)
 
-        ttk.Button(btn_frame, text="Borrow count/member", command=self.stat_borrow_count).pack(side="left", padx=5)
-        ttk.Button(btn_frame, text="Category/member", command=self.stat_category_member).pack(side="left", padx=5)
-        ttk.Button(btn_frame, text="Category/global", command=self.stat_category_global).pack(side="left", padx=5)
-        ttk.Button(btn_frame, text="History/member", command=self.stat_history_member).pack(side="left", padx=5)
-        ttk.Button(btn_frame, text="By author", command=self.stat_by_author).pack(side="left", padx=5)
-        ttk.Button(btn_frame, text="By age", command=self.stat_by_age).pack(side="left", padx=5)
-        ttk.Button(btn_frame, text="By gender", command=self.stat_by_gender).pack(side="left", padx=5)
+        ttk.Button(
+            global_frame,
+            text="Category distribution (all members)",
+            command=self.show_global_category_distribution
+        ).grid(row=0, column=0, padx=5, pady=3)
+
+        ttk.Button(
+            global_frame,
+            text="Loans per author",
+            command=self.show_loans_per_author
+        ).grid(row=0, column=1, padx=5, pady=3)
+
+        ttk.Button(
+            global_frame,
+            text="Loans per age",
+            command=self.show_loans_per_age
+        ).grid(row=0, column=2, padx=5, pady=3)
+
+        ttk.Button(
+            global_frame,
+            text="Loans per gender",
+            command=self.show_loans_per_gender
+        ).grid(row=0, column=3, padx=5, pady=3)
 
         # ---------------------------------------------------------
-        # SECTION: Output
+        # RESULTS TABLE
         # ---------------------------------------------------------
-        output_frame = ttk.LabelFrame(self, text="Results")
-        output_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        table_frame = ttk.LabelFrame(self, text="Results")
+        table_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.text_output = tk.Text(output_frame, height=20, wrap="none")
-        self.text_output.pack(fill="both", expand=True)
+        self.tree = ttk.Treeview(table_frame, columns=("c1", "c2", "c3"), show="headings", height=18)
+        self.tree.heading("c1", text="Column 1")
+        self.tree.heading("c2", text="Column 2")
+        self.tree.heading("c3", text="Column 3")
+
+        self.tree.column("c1", width=250)
+        self.tree.column("c2", width=150)
+        self.tree.column("c3", width=150)
+
+        self.tree.pack(fill="both", expand=True)
+
+        self.refresh_members()
 
     # ---------------------------------------------------------
-    # Helpers
+    # HELPERS
     # ---------------------------------------------------------
-    def _get_dates(self):
+    def _get_period(self):
         start = self.entry_start.get().strip()
         end = self.entry_end.get().strip()
+        if not start or not end:
+            raise ValueError("Please enter both start and end date (YYYY-MM-DD).")
         return start, end
 
-    def _get_member_id(self):
-        text = self.entry_member_id.get().strip()
-        return int(text) if text else None
+    def _get_selected_member_id(self):
+        text = self.entry_member.get().strip()
+        if not text:
+            raise ValueError("Please select a member.")
+        return int(text.split(" - ")[0])
 
-    def _show(self, title, data):
-        self.text_output.delete("1.0", "end")
-        self.text_output.insert("end", f"{title}\n")
-        self.text_output.insert("end", "-" * 40 + "\n\n")
+    def _set_table(self, headers, rows):
+        self.tree.delete(*self.tree.get_children())
+        # adjust headings
+        for i, h in enumerate(headers, start=1):
+            col = f"c{i}"
+            self.tree.heading(col, text=h)
+        # clear unused headings
+        for i in range(len(headers) + 1, 4):
+            col = f"c{i-1}"
+            self.tree.heading(col, text="")
+        # insert rows
+        for r in rows:
+            self.tree.insert("", "end", values=r)
 
-        if isinstance(data, list):
-            for row in data:
-                self.text_output.insert("end", f"{row}\n")
-        else:
-            self.text_output.insert("end", str(data))
+    def refresh_members(self):
+        self.entry_member["values"] = [f"{m.id} - {m.full_name}" for m in self.logic.list_members()]
 
     # ---------------------------------------------------------
-    # Statistics actions
+    # MEMBER STATS
     # ---------------------------------------------------------
-    def stat_borrow_count(self):
-        start, end = self._get_dates()
-        data = self.logic.stats_borrow_count_per_member(start, end)
-        self._show("Borrow count per member", data)
+    def show_member_loans_in_period(self):
+        try:
+            member_id = self._get_selected_member_id()
+            start, end = self._get_period()
+            total = self.logic.count_loans_by_member_in_period(member_id, start, end)
+            self._set_table(
+                ["Member ID", "Period", "Loans count"],
+                [(member_id, f"{start} → {end}", total)]
+            )
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
-    def stat_category_member(self):
-        start, end = self._get_dates()
-        member_id = self._get_member_id()
-        if not member_id:
-            messagebox.showerror("Error", "Member ID required.")
-            return
-        data = self.logic.stats_category_per_member(member_id, start, end)
-        self._show("Category stats for member", data)
+    def show_member_category_distribution(self):
+        try:
+            member_id = self._get_selected_member_id()
+            start, end = self._get_period()
+            data = self.logic.member_category_distribution_in_period(member_id, start, end)
+            rows = [(member_id, category, total) for category, total in data]
+            self._set_table(
+                ["Member ID", "Category", "Loans"],
+                rows
+            )
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
-    def stat_category_global(self):
-        start, end = self._get_dates()
-        data = self.logic.stats_category_global(start, end)
-        self._show("Category stats (global)", data)
+    def show_member_loan_history(self):
+        try:
+            member_id = self._get_selected_member_id()
+            data = self.logic.member_loan_history(member_id)
+            rows = [(title, loan_date, return_date or "") for title, loan_date, return_date in data]
+            self._set_table(
+                ["Title", "Loan date", "Return date"],
+                rows
+            )
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
-    def stat_history_member(self):
-        start, end = self._get_dates()
-        member_id = self._get_member_id()
-        if not member_id:
-            messagebox.showerror("Error", "Member ID required.")
-            return
-        data = self.logic.stats_history_member(member_id, start, end)
-        self._show("Borrowing history for member", data)
+    # ---------------------------------------------------------
+    # GLOBAL STATS
+    # ---------------------------------------------------------
+    def show_global_category_distribution(self):
+        try:
+            start, end = self._get_period()
+            data = self.logic.category_distribution_in_period(start, end)
+            rows = [(category, total, "") for category, total in data]
+            self._set_table(
+                ["Category", "Loans", ""],
+                rows
+            )
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
-    def stat_by_author(self):
-        start, end = self._get_dates()
-        data = self.logic.stats_by_author(start, end)
-        self._show("Borrow count by author", data)
+    def show_loans_per_author(self):
+        try:
+            data = self.logic.loans_per_author()
+            rows = [(author, total, "") for author, total in data]
+            self._set_table(
+                ["Author", "Loans", ""],
+                rows
+            )
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
-    def stat_by_age(self):
-        start, end = self._get_dates()
-        data = self.logic.stats_by_age(start, end)
-        self._show("Borrow count by age group", data)
+    def show_loans_per_age(self):
+        try:
+            data = self.logic.loans_per_age()
+            rows = [(age, total, "") for age, total in data]
+            self._set_table(
+                ["Age", "Loans", ""],
+                rows
+            )
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
-    def stat_by_gender(self):
-        start, end = self._get_dates()
-        data = self.logic.stats_by_gender(start, end)
-        self._show("Borrow count by gender", data)
+    def show_loans_per_gender(self):
+        try:
+            data = self.logic.loans_per_gender()
+            rows = [(gender, total, "") for gender, total in data]
+            self._set_table(
+                ["Gender", "Loans", ""],
+                rows
+            )
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
