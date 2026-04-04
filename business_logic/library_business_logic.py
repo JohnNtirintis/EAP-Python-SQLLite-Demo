@@ -65,6 +65,44 @@ def deactivate_member(self, member_id: int):
 
 def renew_membership(self, member_id: int):
   self.dal.renew_membership(member_id)
+
+def borrow_book(self, dto: CreateLoanDTO) -> int:
+  """
+  Δημιουργεί νέο δανεισμό βιβλιου.
+  Flow:
+  1. Κληση DAL για δανεισμό
+  2. Επιστροφή loan_id
+  """
+  loan_id = self.dal.borrow_book(
+    member_id=dto.member_id,
+    book_id=dto.book_id
+  )
+  return loan_id
+
+def return_book(self, dto: ReturnLoanDTO) -> None:
+  """
+  Επιστρέφει βιβλίο και (προαιρετικά) καταγραφει rating.
+  Flow:
+  1. Κλήση DAL για επιστροφή βιβλίου
+  2. Αν υπάρχει rating -> προσπαθουμε να το καταγράψουμε
+  # 1. Επιστροφή βιβλιου
+  self.dal.return_book(loan_id=dto.loan_id
+  )
+  # 2. Αν υπάρχει rating
+  if dto.rating is not None:
+     # TODO: χρειαζεται member_id και book_id απο το Loan
+     # για να καλέσουμε:
+     # self.dal.add_or_update_rating(member_id, book_id, dto.rating)
+     pass
+  
+  
+
+
+
+
+    
+
+
   
    
   
