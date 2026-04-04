@@ -20,21 +20,12 @@ class BusinessLogic:
         return self.dal.list_members()
 
     def add_member(self, **kwargs):
-        # Create DTO
         dto = CreateMemberDTO(**kwargs)
-
-        # Validate DTO
         self.member_validator.validate_create(dto)
-
-        # Pass to DAL
         return self.dal.add_member(dto)
 
     def update_member(self, member_id, **kwargs):
         dto = UpdateMemberDTO(**kwargs)
-
-        # If you later add validate_update, call it here
-        # self.member_validator.validate_update(dto)
-
         return self.dal.update_member(member_id, dto)
 
     def delete_member(self, member_id):
@@ -47,7 +38,7 @@ class BusinessLogic:
     # CATEGORIES
     # ---------------------------------------------------------
     def add_category(self, name, description=""):
-        dto = CreateCategoryDTO(name=name)
+        dto = CreateCategoryDTO(name=name, description=description)
         return self.dal.add_category(dto)
 
     def list_categories(self):
@@ -84,14 +75,20 @@ class BusinessLogic:
         return self.dal.borrow_book(dto)
 
     def return_book(self, loan_id, rating=None):
-        dto = ReturnLoanDTO(loan_id=loan_id, rating=rating)
-        return self.dal.return_book(dto)
+        dto = ReturnLoanDTO(loan_id=loan_id)
+        result = self.dal.return_book(dto)
+
+        # If user provided a rating, store it
+        if rating is not None:
+            self.dal.add_or_update_rating(result.member_id, result.book_id, rating)
+
+        return result
 
     def list_loans(self):
         return self.dal.list_loans()
 
     # ---------------------------------------------------------
-    # RATINGS (optional future feature)
+    # RATINGS
     # ---------------------------------------------------------
     def add_or_update_rating(self, member_id, book_id, rating):
         return self.dal.add_or_update_rating(member_id, book_id, rating)
