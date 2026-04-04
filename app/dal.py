@@ -11,7 +11,6 @@ from .dto import (
     CreateLoanDTO, ReturnLoanDTO, LoanResponseDTO
 )
 
-
 class LibraryDAL:
     """Data access layer with inline SQL queries."""
 
