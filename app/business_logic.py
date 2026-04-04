@@ -91,3 +91,29 @@ class BusinessLogic:
     # ---------------------------------------------------------
     def add_or_update_rating(self, member_id, book_id, rating):
         return self.dal.add_or_update_rating(member_id, book_id, rating)
+
+
+    # ---------------------------------------------------------
+    # STATISTICS
+    # ---------------------------------------------------------
+    def count_loans_by_member_in_period(self, member_id, start_date, end_date):
+        return self.dal.count_loans_by_member_in_period(member_id, start_date, end_date)
+
+    def member_category_distribution_in_period(self, member_id, start_date, end_date):
+        return self.dal.member_category_distribution_in_period(member_id, start_date, end_date)
+
+    def category_distribution_in_period(self, start_date, end_date):
+        return self.dal.category_distribution_in_period(start_date, end_date)
+
+    def member_loan_history(self, member_id):
+        return self.dal.member_loan_history(member_id)
+
+    def loans_per_author(self):
+        return self.dal.loans_per_author()
+
+    def loans_per_age(self):
+        return self.dal.loans_per_age()
+
+    def loans_per_gender(self):
+        return self.dal.loans_per_gender()
+
