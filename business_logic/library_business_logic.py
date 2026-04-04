@@ -65,6 +65,7 @@ def deactivate_member(self, member_id: int):
 
 def renew_membership(self, member_id: int):
   self.dal.renew_membership(member_id)
+  
    
   
 
