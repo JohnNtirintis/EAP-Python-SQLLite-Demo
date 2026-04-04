@@ -47,7 +47,16 @@ class LendingView(ttk.Frame):
         self.entry_return_id = ttk.Entry(return_frame, width=20)
         self.entry_return_id.grid(row=0, column=1, sticky="w")
 
-        ttk.Button(return_frame, text="Return", command=self.return_book).grid(row=0, column=2, padx=10)
+        ttk.Label(return_frame, text="Rating (1–5):").grid(row=1, column=0, sticky="e", padx=5)
+        self.entry_rating = ttk.Combobox(
+            return_frame,
+            values=["1", "2", "3", "4", "5"],
+            width=5,
+            state="readonly"
+        )
+        self.entry_rating.grid(row=1, column=1, sticky="w")
+
+        ttk.Button(return_frame, text="Return", command=self.return_book).grid(row=0, column=2, rowspan=2, padx=10)
 
         # ---------------------------------------------------------
         # SECTION: Loans table
@@ -108,10 +117,22 @@ class LendingView(ttk.Frame):
     def return_book(self):
         try:
             loan_id = int(self.entry_return_id.get())
-            self.logic.return_book(loan_id)
+            rating_text = self.entry_rating.get().strip()
 
-            messagebox.showinfo("Success", "Book returned.")
+            if not rating_text:
+                raise ValueError("Please select a rating (1–5).")
+
+            rating = int(rating_text)
+
+            # Κλήση business logic με rating
+            self.logic.return_book(loan_id, rating)
+
+            messagebox.showinfo("Success", "Book returned and rating saved.")
             self.refresh()
+
+            # Καθαρισμός πεδίων
+            self.entry_return_id.delete(0, "end")
+            self.entry_rating.set("")
 
         except Exception as e:
             messagebox.showerror("Error", str(e))
