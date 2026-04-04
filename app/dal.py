@@ -11,6 +11,7 @@ from .dto import (
     CreateLoanDTO, ReturnLoanDTO, LoanResponseDTO
 )
 
+
 class LibraryDAL:
     """Data access layer with inline SQL queries."""
 
@@ -156,6 +157,22 @@ class LibraryDAL:
             for row in rows
         ]
 
+    def get_category(self, category_id: int) -> CategoryResponseDTO | None:
+        with self.db.get_connection() as connection:
+            row = connection.execute(
+                "SELECT id, name, description FROM categories WHERE id = ?;",
+                (category_id,),
+            ).fetchone()
+
+        if not row:
+            return None
+
+        return CategoryResponseDTO(
+            id=row["id"],
+            name=row["name"],
+            description=row["description"],
+        )
+
     def delete_category(self, category_id: int) -> None:
         with self.db.get_connection() as connection:
             existing_books = connection.execute(
@@ -191,6 +208,33 @@ class LibraryDAL:
             new_id = int(cursor.lastrowid)
 
         return self.get_book(new_id)
+
+    def get_book(self, book_id: int) -> BookResponseDTO | None:
+        sql = (
+            "SELECT b.id, b.title, b.author, b.isbn, b.category_id, "
+            "c.name AS category_name, b.available_copies, b.total_copies, b.published_year "
+            "FROM books b "
+            "JOIN categories c ON c.id = b.category_id "
+            "WHERE b.id = ?;"
+        )
+
+        with self.db.get_connection() as connection:
+            row = connection.execute(sql, (book_id,)).fetchone()
+
+        if not row:
+            return None
+
+        return BookResponseDTO(
+            id=row["id"],
+            title=row["title"],
+            author=row["author"],
+            isbn=row["isbn"],
+            category_id=row["category_id"],
+            category_name=row["category_name"],
+            total_copies=row["total_copies"],
+            available_copies=row["available_copies"],
+            published_year=row["published_year"],
+        )
 
     def update_book(self, book_id: int, dto: UpdateBookDTO) -> BookResponseDTO:
         with self.db.get_connection() as connection:
