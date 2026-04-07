@@ -90,10 +90,49 @@ def return_book(self, dto: ReturnLoanDTO) -> None:
   )
   # 2. Αν υπάρχει rating
   if dto.rating is not None:
+  
      # TODO: χρειαζεται member_id και book_id απο το Loan
      # για να καλέσουμε:
      # self.dal.add_or_update_rating(member_id, book_id, dto.rating)
      pass
+  ####   
+ 
+
+def list_members(self):
+  """
+  Επιστρέφει όλα τα μέλη.
+  """"
+  members = self.dal.list_members()
+  return members
+
+def list_books(self):
+  """
+  Επιστρέφει όλα τα βιβλία.
+  """
+  books = self.dal.list_books()
+  return books
+
+
+    
+
+
+
+    
+     
+     
+ 
+    
+
+ 
+     
+
+
+
+     
+
+
+
+     
   
   
 
