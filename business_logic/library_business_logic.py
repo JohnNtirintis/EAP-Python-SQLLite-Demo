@@ -112,6 +112,21 @@ def list_books(self):
   books = self.dal.list_books()
   return books
 
+def search_books(self, keyword: str):
+  """
+  Αναζητά βιβλία με βάση λέξη-κλειδί.
+  """
+  # Καθαρισμός input
+  keyword = keyword.strip().lower()
+  # Αν είναι άδειο -> δεν ψάχνουμε
+  if not keyword:
+    return []
+
+  # Κλήση DAL
+  books = self.dal.search_books(keyword)
+  return books
+  
+
 
     
 
