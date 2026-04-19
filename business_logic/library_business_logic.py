@@ -125,6 +125,20 @@ def search_books(self, keyword: str):
   # Κλήση DAL
   books = self.dal.search_books(keyword)
   return books
+
+def list_loans(self, active_only: bool = False):
+  """
+  Επιστρέφει τη λιστα δανεισμών.
+  active_only=True -> μόνο ενεργοί δανεισμοί
+  active_only=False -> όλοι οι δανεισμοί
+  """
+  loans = self.dal.list_loans(active_only=active_only)
+  return loans
+
+
+  
+
+
   
 
 
