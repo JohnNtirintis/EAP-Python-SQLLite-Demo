@@ -135,6 +135,22 @@ def list_loans(self, active_only: bool = False):
   loans = self.dal.list_loans(active_only=active_only)
   return loans
 
+def add_book(self, dto: CreateBookDTO) -> int:
+  book_id = self.dal.add_book(
+    title=dto.title,
+    author=dto.author,
+    isbn=dto.isbn,
+    category_id=dto.category_id,
+    total_copies=dto.stock,
+    published_year=None
+  )
+  return book_id
+
+    
+    
+
+  
+
 
   
 
