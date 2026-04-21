@@ -1,12 +1,13 @@
 #import GUI package
 import tkinter as tk
-from tkinter import ttk
 
 class SideBar_Menu:
-    def __init__(self,frame):
+    def __init__(self,frame, page_select):
         self.frame = frame
         self.default_active_btn_txt = "Αρχική"
         self.active_menu_btn = None
+        self.page_select = page_select
+
 
         #sidebar user label
         self.sidebar_bg_image = tk.PhotoImage(file= 'menu_bg_image.png')
@@ -45,12 +46,11 @@ class SideBar_Menu:
                         'Μέλη']
 
         #menu buttons creation with correct txt
-        for i, item in enumerate(menu_buttons):
-            btn_text = self.create_menu_button(frame, item)
-
+        for i, text in enumerate(menu_buttons):
+           self.create_menu_button(text)
 
     #create sidebar_menu_buttons function
-    def create_menu_button(self,parent, text):
+    def create_menu_button(self,text):
         
         menu_btn = tk.Button(
                             self.frame,
@@ -64,15 +64,15 @@ class SideBar_Menu:
                             highlightthickness=0,
                             padx=20,
                             pady=20,
+                            command=lambda: self.on_click(menu_btn),
                             font= ("Segoe UI",12),
                             cursor="hand2"
                             )
         menu_btn.pack(fill=tk.X)
 
-        #change hover colours
+        #change btn colours
         menu_btn.bind("<Enter>",lambda e: self.on_hover(menu_btn))
         menu_btn.bind("<Leave>",lambda e: self.on_leave(menu_btn))
-        menu_btn.bind("<Button-1>",lambda e: self.on_click(menu_btn))
 
         #default active btn
         if text == self.default_active_btn_txt:
@@ -99,6 +99,9 @@ class SideBar_Menu:
         #set new active btn
         btn.config(bg="#282828",fg="#00D5E4")
         self.active_menu_btn = btn
+
+        #get page name
+        self.page_select(btn.cget("text"))
 
 
 
