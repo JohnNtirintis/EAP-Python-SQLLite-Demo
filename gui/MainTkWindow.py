@@ -1,7 +1,7 @@
 #import GUI package
 import tkinter as tk
 from SideBar_Menu import *
-from Dashboard import Dashboard
+from Dashboard_Page import Dashboard
 from Books_Page import Books
 from Statistics_Page import Statistics
 from Loans_Page import Loans
