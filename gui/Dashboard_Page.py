@@ -22,7 +22,7 @@ FG_MUTED_HEADERS = "#5E5E5E"
 BUTTON_BG = "#059CA7"
 FONT_MAIN  = ("Segoe UI", 12)
 FONT_BOLD  = ("Segoe UI", 12, "bold")
-FONT_TITLE = ("Segoe UI", 14)
+FONT_TITLE = ("Segoe UI", 18)
 FONT_SMALL = ("Segoe UI", 10)
 plt.rcParams["font.family"] = "Segoe UI"
 
@@ -107,7 +107,7 @@ class Dashboard(tk.Frame):
                     bd = 0,
                     bg = BG_CARD,
                     fg= FG_MUTED_HEADERS,
-                    font= FONT_TITLE
+                    font= ("Segoe UI", 14)
                     )
         data_lbl.grid(row=0, column=1, sticky='e', padx=(0,20), pady=(10,0))
 
