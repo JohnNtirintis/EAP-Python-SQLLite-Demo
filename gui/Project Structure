@@ -12,6 +12,7 @@ library_management/
 │   └── business_logic.py           ← Business rules & recommendation engine
 │
 ├── gui/
+│   ├── assets/                     ← images, icons (e.g. menu_bg_image.png)
 │   ├── MainTkWindow.py             ← Root Tk() window, frame router
 │   ├── SideBar_Menu.py             ← Left sidebar, always visible
 │   ├── Dashboard_Page.py           ← KPIs + area chart + recent loans table
