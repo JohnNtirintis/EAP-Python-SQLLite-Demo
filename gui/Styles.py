@@ -15,7 +15,7 @@ FG_MUTED_HEADERS = "#5E5E5E"
 BUTTON_BG = "#059CA7"
 FONT_MAIN  = ("Segoe UI", 12)
 FONT_BOLD  = ("Segoe UI", 12, "bold")
-FONT_TITLE = ("Segoe UI", 14)
+FONT_TITLE = ("Segoe UI", 18)
 FONT_SMALL = ("Segoe UI", 10)
 
 def setup_styles():
