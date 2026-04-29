@@ -10,6 +10,13 @@ library_management/
 │   ├── dal.py                      ← All raw SQL queries
 │   ├── dto.py                      ← Dataclasses (MemberDTO, BookDTO, etc.)
 │   └── business_logic.py           ← Business rules & recommendation engine
+│   └── validation/
+│       ├── __init__.py
+│       ├── errors.py
+│       ├── rules.py
+│       ├── member_validator.py
+│       ├── book_validator.py
+│       └── loan_validator.py
 │
 ├── gui/
 │   ├── assets/                     ← images, icons (e.g. menu_bg_image.png)
