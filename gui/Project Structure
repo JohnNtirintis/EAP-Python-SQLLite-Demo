@@ -1,0 +1,27 @@
+library_management/
+│
+├── sql/
+│   └── schema.sql                  ← CREATE TABLE IF NOT EXISTS schema script
+│
+├── app/
+│   ├── __init__.py
+│   ├── bootstrap.py                ← DB init + first-run seed data
+│   ├── database.py                 ← Connection singleton, runs schema.sql
+│   ├── dal.py                      ← All raw SQL queries
+│   ├── dto.py                      ← Dataclasses (MemberDTO, BookDTO, etc.)
+│   └── business_logic.py           ← Business rules & recommendation engine
+│
+├── gui/
+│   ├── MainTkWindow.py             ← Root Tk() window, frame router
+│   ├── SideBar_Menu.py             ← Left sidebar, always visible
+│   ├── Dashboard_Page.py           ← KPIs + area chart + recent loans table
+│   ├── Books_Page.py               ← Book catalogue, search, action buttons
+│   ├── Categories_Page.py          ← Add/delete category (embedded frame)
+│   ├── Book_Edit_Page.py           ← Add/edit book form (embedded frame)
+│   ├── Loans_Page.py               ← Search, borrow, return action
+│   ├── Rating_Page.py              ← 5-star rating (embedded frame, post-return)
+│   ├── Members_Page.py             ← Member form + list table
+│   ├── Recommend_Page.py           ← Book recommendations (embedded frame)
+│   └── Statistics_Page.py          ← Charts + loan history table
+│
+└── main.py                         ← Entry point, calls bootstrap then launches GUI
