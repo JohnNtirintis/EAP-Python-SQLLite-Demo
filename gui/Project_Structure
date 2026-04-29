@@ -17,7 +17,8 @@ library_management/
 │       ├── member_validator.py
 │       ├── book_validator.py
 │       └── loan_validator.py
-│
+├── tools/                      ← NEW
+│   └── populate_db.py          ← manual test data script
 ├── gui/
 │   ├── assets/                     ← images, icons (e.g. menu_bg_image.png)
 │   ├── MainTkWindow.py             ← Root Tk() window, frame router
