@@ -1,38 +1,78 @@
-from __future__ import annotations
+# validation/member_validator.py
+# Validates MemberDTO data before it is passed to dal.py.
+# Called by business_logic.py — never directly from the GUI.
 
-from ..dto import CreateMemberDTO
-
-from .errors import FieldError, ValidationError
-from .rules import optional_email, positive_int, required_str
-
-
-class MemberValidator:
-    """Entity-specific business validation for member operations."""
-
-    def validate_create(self, dto: CreateMemberDTO) -> None:
-        errors: list[FieldError] = []
-
-        full_name_error = required_str(dto.full_name, "full_name", "Full name")
-        if full_name_error:
-            errors.append(full_name_error)
-
-        # .strip() is redundant here
-        # we have normalized the data earlier
-        # but, we will keep it for defensive programming in case this validator is used elsewhere without normalization
-        phone = (dto.phone or "").strip()
-        email = (dto.email or "").strip()
-        if not phone and not email:
-            errors.append(FieldError(field="phone", message="Provide at least one contact method: phone or email."))
-
-        email_error = optional_email(dto.email, "email")
-        if email_error:
-            errors.append(email_error)
-
-        age_error = positive_int(dto.age, "age", "Age")
-        if age_error:
-            errors.append(age_error)
-
-        if errors:
-            raise ValidationError(errors)
+from app.validation.errors import MemberValidationError
+from app.validation.rules import (
+    is_non_empty,
+    is_valid_email,
+    is_valid_phone,
+    is_valid_age,
+    is_valid_gender,
+    is_valid_status,
+)
 
 
+def validate_new_member(dto) -> None:
+    """
+    Validates all required fields for creating a new member.
+    Raises MemberValidationError with a descriptive message if any check fails.
+    dto: MemberDTO
+    """
+    if not is_non_empty(dto.full_name):
+        raise MemberValidationError("Full name is required.")
+
+    if not is_non_empty(dto.registration_number):
+        raise MemberValidationError("Registration number is required.")
+
+    if dto.email and not is_valid_email(dto.email):
+        raise MemberValidationError(f"Invalid email format: '{dto.email}'.")
+
+    if dto.phone and not is_valid_phone(dto.phone):
+        raise MemberValidationError(f"Invalid phone number: '{dto.phone}'.")
+
+    if dto.age is not None and not is_valid_age(dto.age):
+        raise MemberValidationError("Age must be a non-negative integer.")
+
+    if not is_valid_gender(dto.gender):
+        raise MemberValidationError(
+            f"Invalid gender '{dto.gender}'. Must be 'Male', 'Female', 'Other', or None."
+        )
+
+    if not is_valid_status(dto.status):
+        raise MemberValidationError(
+            f"Invalid status '{dto.status}'. Must be 'active' or 'inactive'."
+        )
+
+
+def validate_update_member(dto) -> None:
+    """
+    Validates fields for updating an existing member.
+    Only the id is strictly required; all other fields are optional but validated if present.
+    Raises MemberValidationError if any provided field is invalid.
+    dto: MemberDTO
+    """
+    if not dto.id:
+        raise MemberValidationError("Member ID is required for updates.")
+
+    if dto.full_name is not None and not is_non_empty(dto.full_name):
+        raise MemberValidationError("Full name cannot be blank.")
+
+    if dto.email is not None and not is_valid_email(dto.email):
+        raise MemberValidationError(f"Invalid email format: '{dto.email}'.")
+
+    if dto.phone is not None and not is_valid_phone(dto.phone):
+        raise MemberValidationError(f"Invalid phone number: '{dto.phone}'.")
+
+    if dto.age is not None and not is_valid_age(dto.age):
+        raise MemberValidationError("Age must be a non-negative integer.")
+
+    if dto.gender is not None and not is_valid_gender(dto.gender):
+        raise MemberValidationError(
+            f"Invalid gender '{dto.gender}'. Must be 'Male', 'Female', 'Other', or None."
+        )
+
+    if dto.status is not None and not is_valid_status(dto.status):
+        raise MemberValidationError(
+            f"Invalid status '{dto.status}'. Must be 'active' or 'inactive'."
+        )
