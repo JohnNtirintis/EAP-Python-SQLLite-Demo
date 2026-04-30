@@ -1,10 +1,22 @@
 # styles.py
+
+#Use this single universal import block on every page
+
+#from gui.styles import (
+#    BG_MAIN, BG_CARD, BG_FILTER, BG_DARK, BG_DARKER,
+#    ACCENT, FG_LIGHT, FG_DARK, FG_MUTED,
+#    FONT_MAIN, FONT_BOLD, FONT_TITLE, FONT_SEC, FONT_SMALL,
+#    FONT_TREE, FONT_THEAD, FONT_CRUMB,
+#    CHART_COLORS, MPL_BG, MPL_GRID, MPL_TEXT,
+#)
+
 import tkinter as tk
 from tkinter import ttk
 
 # ─── colour & font constants (match all other pages) ─────────────────────────
 BG_MAIN = "#D9D9D9"
 BG_CARD = "#EAEAEA"
+BG_FILTER = "#CFCFCF"         
 SIDEBAR_BG_DARK = "#353535"
 SIDEBAR_BG_DARKER = "#242424"
 SIDEBAR_BG_HIGHLIGHT = "#282828"
@@ -17,6 +29,22 @@ FONT_MAIN  = ("Segoe UI", 12)
 FONT_BOLD  = ("Segoe UI", 12, "bold")
 FONT_TITLE = ("Segoe UI", 18)
 FONT_SMALL = ("Segoe UI", 10)
+FONT_SEC   = ("Segoe UI", 13, "bold")    
+FONT_TREE  = ("Segoe UI", 11)            
+FONT_THEAD = ("Segoe UI", 11, "bold")    
+FONT_CRUMB = ("Segoe UI", 10)            
+
+# ── Chart palette (light-mode friendly) ──────────────────────────────
+CHART_COLORS = [                         # ← new: statistics charts
+    "#01696f", "#00D5E4", "#da7101", "#437a22",
+    "#006494", "#7a39bb", "#a12c7b", "#a13544",
+    "#d19900", "#0c4e54", "#2e5c10", "#275f8e",
+]
+
+# ── Matplotlib surfaces (light theme) ────────────────────────────────
+MPL_BG   = "#EAEAEA"                     # ← new
+MPL_GRID = "#C8C8C8"                     # ← new
+MPL_TEXT = "#1E1E1E"                     # ← new
 
 def setup_styles():
     style = ttk.Style()
