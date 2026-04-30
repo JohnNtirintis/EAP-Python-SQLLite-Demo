@@ -257,16 +257,17 @@ class Books(tk.Frame):
                        background=BG_CARD,
                        fieldbackground=BG_CARD,
                        foreground=FG_DARK,
-                       font=FONT_TREE,
-                       rowheight=34,
+                       font=FONT_SMALL,
+                       rowheight=28,
                        borderwidth=0)
         sty.configure("Books.Treeview.Heading",
                        background=BG_DARK,
                        foreground=FG_LIGHT,
-                       font=FONT_THEAD,
+                       font=FONT_SMALL,
                        relief="flat",
                        borderwidth=0,
-                       padding=(6, 6))
+                       padding=(6, 4)
+                       )
         sty.map("Books.Treeview",
                 background=[("selected", BG_DARKER)],
                 foreground=[("selected", ACCENT)])
