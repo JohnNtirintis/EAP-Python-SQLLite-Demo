@@ -62,7 +62,14 @@ CREATE TABLE IF NOT EXISTS ratings (
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+-- Speeds up loan queries filtered by member + date (Statistics Sections 1, 2, 4)
 CREATE INDEX IF NOT EXISTS idx_loans_member_date ON loans(member_id, loan_date);
+
+-- Speeds up book popularity queries filtered by book + date (Statistics Section 3)
 CREATE INDEX IF NOT EXISTS idx_loans_book_date ON loans(book_id, loan_date);
+
+-- Speeds up category distribution queries (Statistics Sections 2, 3)
 CREATE INDEX IF NOT EXISTS idx_books_category ON books(category_id);
 
+-- Speeds up Dashboard KPI query: SELECT COUNT(*) FROM loans WHERE status = 'borrowed'
+CREATE INDEX IF NOT EXISTS idx_loans_status ON loans(status);
