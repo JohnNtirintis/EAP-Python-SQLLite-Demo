@@ -65,3 +65,11 @@ def setup_styles():
         ("active", SIDEBAR_FG),
         ("pressed", SIDEBAR_FG)]
         )
+
+# ── Short aliases so all GUI pages use consistent names ──────────────
+BG_DARK   = SIDEBAR_BG_DARK
+BG_DARKER = SIDEBAR_BG_HIGHLIGHT
+ACCENT    = SIDEBAR_FG_HIGHLIGHT
+FG_LIGHT  = SIDEBAR_FG
+FG_DARK   = FG_DARK_BODY
+FG_MUTED  = FG_MUTED_HEADERS
