@@ -1,19 +1,29 @@
-from __future__ import annotations
-
-from dataclasses import dataclass
-
-
-@dataclass(frozen=True)
-class FieldError:
-    field: str
-    message: str
+# validation/errors.py
+# Custom exception classes for the validation layer.
+# Raised by validators, caught in business_logic.py.
+# Never caught directly in the GUI layer.
 
 
-class ValidationError(ValueError):
-    """Raised when one or more validation checks fail."""
+class ValidationError(Exception):
+    """Base class for all validation errors in the application."""
+    pass
 
-    def __init__(self, errors: list[FieldError]) -> None:
-        self.errors = errors
-        details = "; ".join(f"{error.field}: {error.message}" for error in errors)
-        super().__init__(details or "Validation failed")
 
+class MemberValidationError(ValidationError):
+    """Raised when member data fails validation rules."""
+    pass
+
+
+class BookValidationError(ValidationError):
+    """Raised when book data fails validation rules."""
+    pass
+
+
+class LoanValidationError(ValidationError):
+    """Raised when loan data fails validation rules."""
+    pass
+
+
+class CategoryValidationError(ValidationError):
+    """Raised when category data fails validation rules."""
+    pass
