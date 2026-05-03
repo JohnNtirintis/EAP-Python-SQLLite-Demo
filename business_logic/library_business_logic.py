@@ -146,6 +146,60 @@ def add_book(self, dto: CreateBookDTO) -> int:
   )
   return book_id
 
+def update_book(self,book_id:int,dto:UpdateBookDTO)->None:
+  """
+  Ενημερώνει στοιχεια βιβλίου.
+  Αν καποιο πεδίο στο dto είναι None,
+  κρατάμε την παλιά τιμή από το βιβλίο.
+  """
+  # Παίρνουμε όλα τα βιβλία
+  books=self.dal.list_books()
+
+  # Βρίσκουμε το συγκεκριμένο βιβλίο 
+  book=next((b for b in books if b["id"]==book_id), None)
+
+  # Αν δεν υπάρχει, σταματάμε
+  if book is None:
+    raise ValueError("Book does not exist.")
+
+  # Κρατάμε νέα τιμή αν υπάρχει,αλλιώς την παλιά
+  title = dto.title if dto.title is not None else book["title"]
+  author = dto.author if dto.author is not None else book["author"]
+  category_id = dto.category_id if dto.category_id is not None else book["category_id"]
+  total_copies = dto.stock if dto.stock is not None else book["total_copies"]
+
+  # Το ISBN δεν υπάρχει στο UpdateBookDTO, άρα κρατάμε το παλίο
+  isbn = book["isbn"]
+
+  # published_year δεν το έχουμε στο DTO,άρα για τώρα None
+  published_year = None
+
+  # Κλήση DAL
+  self.dal.update_book(
+    book_id=book_id,
+    title=title,
+    author=author,
+    isbn=isbn,
+    category_id=category_id,
+    total_copies=total_copies,
+    published_year=published_year
+  )
+  
+  
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+
     
     
 
