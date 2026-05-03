@@ -200,6 +200,34 @@ def add_category(self, dto:CreateCategoryDTO)-> int:
   )
   return category_id
 
+def list_available_books_by_category(self,category_name:str):
+  """
+  Επιστρέφει διαθεσιμα βιβλία συγκεκριμένης κατηγορίας.
+  """
+  category_name = category_name.strip().lower()
+  if not category_name:
+    return[]
+  books = self.dal.list_books()
+  available_books = [
+    book for book in books
+    if book["category_name"].lower()==category_name
+    and book["available_copies"]>0
+  ]
+  return available_books
+
+def check_availability(self,book_id:int)-> bool:
+  """
+  Ελεγχει αν ένα βιβλίο ειναι διαθεσιμο.
+  """
+  books = self.dal.list_books()
+  book = next((b for b in books if b["id"]==book_id),None)
+  if book is None:
+    raise ValueError("Book does not exist.")
+
+  return book["available_copies"]>0
+
+
+
 
   
   
