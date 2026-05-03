@@ -184,6 +184,21 @@ def update_book(self,book_id:int,dto:UpdateBookDTO)->None:
     total_copies=total_copies,
     published_year=published_year
   )
+
+def add_category(self, dto:CreateCategoryDTO)-> int:
+  """
+  Προσθέτει νέα κατηγορια βιβλίου.
+  """
+  category_name = dto.name.strip()
+  if not category_name:
+    raise ValueError("Category name is required.")
+
+  category_id = self.dal.add_category(
+    name=category_name
+  )
+  return category_id
+
+
   
   
 
