@@ -4,6 +4,8 @@ from typing import Optional
 from app.dal import LibraryDAL
 from app.dto import CreateMemberDTO
 from app.validation.member_validator import MemberValidator
+from app.dto import CreateMemberDTO, CreateBookDTO, UpdateBookDTO,
+CreateCategoryDTO,
 
 class LibraryBusinessLogic:
   """Business layer that applies rules before persisting through DAL."""
