@@ -31,9 +31,9 @@ class LibraryBusinessLogic:
     5. Επιστροφή member_id
     """
     # 1. Καθαρισμός δεδομένων
-    normalized = self._normalized_member(dto)
+    normalized = self._normalize_member(dto)
     # 2. Validation
-    self.member_validation.validate_create(normalized)
+    self.member_validatior.validate_create(normalized)
     # 3. Δημιουργία registration number
     registration_number = self._next_registration_number()
     # 4. Κλήση DAL
