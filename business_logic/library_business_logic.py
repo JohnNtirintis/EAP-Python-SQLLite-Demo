@@ -2,10 +2,16 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Optional
 from app.dal import LibraryDAL
-from app.dto import CreateMemberDTO
+from app.dto import (
+    CreateMemberDTO,
+    UpdateMemberDTO,
+    CreateLoanDTO,
+    ReturnLoanDTO,
+    CreateBookDTO,
+    UpdateBookDTO,
+    CreateCategoryDTO,
+)
 from app.validation.member_validator import MemberValidator
-from app.dto import CreateMemberDTO, CreateBookDTO, UpdateBookDTO,
-CreateCategoryDTO
 
 class LibraryBusinessLogic:
   """Business layer that applies rules before persisting through DAL."""
