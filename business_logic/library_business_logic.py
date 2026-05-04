@@ -33,7 +33,7 @@ class LibraryBusinessLogic:
     # 1. Καθαρισμός δεδομένων
     normalized = self._normalize_member(dto)
     # 2. Validation
-    self.member_validatior.validate_create(normalized)
+    self.member_validator.validate_create(normalized)
     # 3. Δημιουργία registration number
     registration_number = self._next_registration_number()
     # 4. Κλήση DAL
@@ -46,6 +46,8 @@ class LibraryBusinessLogic:
       age=normalized.age,
       profession=normalized.profession or "",
       gender=normalized.gender or "Other",
+    )
+        
     # 5. Επιστροφή αποτελέσματος
     return member_id
 
