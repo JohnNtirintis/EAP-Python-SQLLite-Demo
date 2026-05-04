@@ -51,15 +51,34 @@ class LibraryBusinessLogic:
     # 5. Επιστροφή αποτελέσματος
     return member_id
 
+
+
+
+ def _normalize_member(self, dto: CreateMemberDTO | UpdateMemberDTO) -> CreateMemberDTO | UpdateMemberDTO:
+    return replace(
+        dto,
+        full_name=(dto.full_name or "").strip() if dto.full_name is not None else None,
+        address=(dto.address or "").strip() or None,
+        phone=(dto.phone or "").strip() or None,
+        email=(dto.email or "").strip() or None,
+        profession=(dto.profession or "").strip() or None,
+        gender=(dto.gender or "").strip() or None,
+    )
+
+        
+        
  def _next_registration_number(self) -> str:
    """Δημιουργεί νέο μοναδικό αριθμό μέλους."""
-   members = self.dal.list_numbers()
+   members = self.dal.list_members()
    max_id = max((int(member["id"]) for member in memebrs), default=0)
    return f"M-{1000 + max_id + 1}"
 
-def update_member(self, member_id: int, dto: UpdateMemberDTO):
-  normalized = self._normalized_member(dto)
-  self.dal.update_member(
+
+ def update_member(self, member_id: int, dto: UpdateMemberDTO) -> None:
+     
+     
+    normalized = self._normalize_member(dto)
+    self.dal.update_member(
     member_id=member_id,
     full_name=normalized.full_name,
     address=normalized.address or "",
