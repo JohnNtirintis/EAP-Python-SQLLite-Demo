@@ -132,7 +132,7 @@ def return_book(self, dto: ReturnLoanDTO) -> None:
 def list_members(self):
   """
   Επιστρέφει όλα τα μέλη.
-  """"
+  """
   members = self.dal.list_members()
   return members
 
