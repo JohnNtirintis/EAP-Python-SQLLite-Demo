@@ -70,7 +70,7 @@ class LibraryBusinessLogic:
  def _next_registration_number(self) -> str:
    """Δημιουργεί νέο μοναδικό αριθμό μέλους."""
    members = self.dal.list_members()
-   max_id = max((int(member["id"]) for member in memebrs), default=0)
+   max_id = max((int(member["id"]) for member in members), default=0)
    return f"M-{1000 + max_id + 1}"
 
 
