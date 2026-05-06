@@ -67,14 +67,14 @@ class LibraryBusinessLogic:
 
         
         
- def _next_registration_number(self) -> str:
+  def _next_registration_number(self) -> str:
    """Δημιουργεί νέο μοναδικό αριθμό μέλους."""
-   members = self.dal.list_members()
-   max_id = max((int(member["id"]) for member in members), default=0)
-   return f"M-{1000 + max_id + 1}"
+    members = self.dal.list_members()
+    max_id = max((int(member["id"]) for member in members), default=0)
+    return f"M-{1000 + max_id + 1}"
 
 
- def update_member(self, member_id: int, dto: UpdateMemberDTO) -> None:
+  def update_member(self, member_id: int, dto: UpdateMemberDTO) -> None:
      
      
     normalized = self._normalize_member(dto)
@@ -89,13 +89,14 @@ class LibraryBusinessLogic:
         gender=normalized.gender or "Other",
   )
 
-def deactivate_member(self, member_id: int) -> None:
-  self.dal.deactivate_member(member_id)
+  def deactivate_member(self, member_id: int) -> None:
+      
+    self.dal.deactivate_member(member_id)
 
-def renew_membership(self, member_id: int) -> None:
+  def renew_membership(self, member_id: int) -> None:
   self.dal.renew_membership(member_id)
 
-def borrow_book(self, dto: CreateLoanDTO) -> int:
+  def borrow_book(self, dto: CreateLoanDTO) -> int:
   """
   Δημιουργεί νέο δανεισμό βιβλιου.
   Flow:
