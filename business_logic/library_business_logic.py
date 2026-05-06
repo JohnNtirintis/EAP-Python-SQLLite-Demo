@@ -115,6 +115,7 @@ def return_book(self, dto: ReturnLoanDTO) -> None:
   Flow:
   1. Κλήση DAL για επιστροφή βιβλίου
   2. Αν υπάρχει rating -> προσπαθουμε να το καταγράψουμε
+  """
   # 1. Επιστροφή βιβλιου
   self.dal.return_book(loan_id=dto.loan_id,
   )
