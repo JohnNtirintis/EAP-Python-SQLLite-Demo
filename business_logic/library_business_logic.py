@@ -79,14 +79,14 @@ class LibraryBusinessLogic:
      
     normalized = self._normalize_member(dto)
     self.dal.update_member(
-    member_id=member_id,
-    full_name=normalized.full_name or "",
-    address=normalized.address or "",
-    phone=normalized.phone or "",
-    email=normalized.email or "",
-    age=normalized.age,
-    profession=normalized.profession or "",
-    gender=normalized.gender or "Other",
+        member_id=member_id,
+        full_name=normalized.full_name or "",
+        address=normalized.address or "",
+        phone=normalized.phone or "",
+        email=normalized.email or "",
+        age=normalized.age,
+        profession=normalized.profession or "",
+        gender=normalized.gender or "Other",
   )
 
 def deactivate_member(self, member_id: int) -> None:
