@@ -54,7 +54,7 @@ class LibraryBusinessLogic:
 
 
 
- def _normalize_member(self, dto: CreateMemberDTO | UpdateMemberDTO) -> CreateMemberDTO | UpdateMemberDTO:
+  def _normalize_member(self, dto: CreateMemberDTO | UpdateMemberDTO) -> CreateMemberDTO | UpdateMemberDTO:
     return replace(
         dto,
         full_name=(dto.full_name or "").strip() if dto.full_name is not None else None,
