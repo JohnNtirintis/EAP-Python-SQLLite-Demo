@@ -80,7 +80,7 @@ class LibraryBusinessLogic:
     normalized = self._normalize_member(dto)
     self.dal.update_member(
     member_id=member_id,
-    full_name=normalized.full_name,
+    full_name=normalized.full_name or "",
     address=normalized.address or "",
     phone=normalized.phone or "",
     email=normalized.email or "",
@@ -89,10 +89,10 @@ class LibraryBusinessLogic:
     gender=normalized.gender or "Other",
   )
 
-def deactivate_member(self, member_id: int):
+def deactivate_member(self, member_id: int) -> None:
   self.dal.deactivate_member(member_id)
 
-def renew_membership(self, member_id: int):
+def renew_membership(self, member_id: int) -> None:
   self.dal.renew_membership(member_id)
 
 def borrow_book(self, dto: CreateLoanDTO) -> int:
@@ -115,7 +115,7 @@ def return_book(self, dto: ReturnLoanDTO) -> None:
   1. Κλήση DAL για επιστροφή βιβλίου
   2. Αν υπάρχει rating -> προσπαθουμε να το καταγράψουμε
   # 1. Επιστροφή βιβλιου
-  self.dal.return_book(loan_id=dto.loan_id
+  self.dal.return_book(loan_id=dto.loan_id,
   )
   # 2. Αν υπάρχει rating
   if dto.rating is not None:
