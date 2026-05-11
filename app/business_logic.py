@@ -31,6 +31,12 @@ class BusinessLogic:
     def delete_member(self, member_id):
         return self.dal.delete_member(member_id)
 
+    def deactivate_member(self, member_id):
+        return self.dal.deactivate_member(member_id)
+
+    def renew_membership(self, member_id):
+        return self.dal.renew_membership(member_id)
+
     def get_member(self, member_id):
         return self.dal.get_member(member_id)
 
@@ -56,6 +62,12 @@ class BusinessLogic:
 
     def list_books(self):
         return self.dal.list_books()
+
+    def list_available_books_by_category(self, category_id):
+        return self.dal.list_available_books_by_category(category_id)
+
+    def is_book_available(self, book_id):
+        return self.dal.is_book_available(book_id)
 
     def search_books(self, keyword):
         return self.dal.search_books(keyword)
@@ -92,6 +104,13 @@ class BusinessLogic:
     def add_or_update_rating(self, member_id, book_id, rating):
         return self.dal.add_or_update_rating(member_id, book_id, rating)
 
+    # ---------------------------------------------------------
+    # RECOMMENDATIONS
+    # ---------------------------------------------------------
+    def recommend_books(self, member_id, limit=5):
+        if not self.dal.get_member(member_id):
+            raise ValueError("Member does not exist.")
+        return self.dal.recommend_books(member_id, limit)
 
     # ---------------------------------------------------------
     # STATISTICS

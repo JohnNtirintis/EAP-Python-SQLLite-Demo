@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Any
 
 from .database import DatabaseManager
 from .dto import (
     CreateMemberDTO, UpdateMemberDTO, MemberResponseDTO,
     CreateCategoryDTO, CategoryResponseDTO,
     CreateBookDTO, UpdateBookDTO, BookResponseDTO,
-    CreateLoanDTO, ReturnLoanDTO, LoanResponseDTO
+    CreateLoanDTO, ReturnLoanDTO, LoanResponseDTO,
+    RecommendationDTO,
 )
 
 
@@ -79,6 +79,31 @@ class LibraryDAL:
                 raise ValueError("Cannot delete member with active loans.")
 
             connection.execute("DELETE FROM members WHERE id = ?;", (member_id,))
+
+    def deactivate_member(self, member_id: int) -> MemberResponseDTO | None:
+        with self.db.get_connection() as connection:
+            active_loan = connection.execute(
+                "SELECT 1 FROM loans WHERE member_id = ? AND status = 'borrowed' LIMIT 1;",
+                (member_id,),
+            ).fetchone()
+            if active_loan:
+                raise ValueError("Cannot deactivate member with active loans.")
+
+            connection.execute(
+                "UPDATE members SET status = 'inactive' WHERE id = ?;",
+                (member_id,),
+            )
+
+        return self.get_member(member_id)
+
+    def renew_membership(self, member_id: int) -> MemberResponseDTO | None:
+        with self.db.get_connection() as connection:
+            connection.execute(
+                "UPDATE members SET status = 'active', renewed_at = CURRENT_TIMESTAMP WHERE id = ?;",
+                (member_id,),
+            )
+
+        return self.get_member(member_id)
 
     def list_members(self) -> list[MemberResponseDTO]:
         with self.db.get_connection() as connection:
@@ -342,6 +367,44 @@ class LibraryDAL:
             for row in rows
         ]
 
+    def list_available_books_by_category(self, category_id: int) -> list[BookResponseDTO]:
+        sql = (
+            "SELECT b.id, b.title, b.author, b.isbn, b.category_id, c.name AS category_name, "
+            "b.available_copies, b.total_copies, b.published_year "
+            "FROM books b JOIN categories c ON c.id = b.category_id "
+            "WHERE b.category_id = ? AND b.available_copies > 0 "
+            "ORDER BY b.title;"
+        )
+        with self.db.get_connection() as connection:
+            rows = connection.execute(sql, (category_id,)).fetchall()
+
+        return [
+            BookResponseDTO(
+                id=row["id"],
+                title=row["title"],
+                author=row["author"],
+                isbn=row["isbn"],
+                category_id=row["category_id"],
+                category_name=row["category_name"],
+                total_copies=row["total_copies"],
+                available_copies=row["available_copies"],
+                published_year=row["published_year"],
+            )
+            for row in rows
+        ]
+
+    def is_book_available(self, book_id: int) -> bool:
+        with self.db.get_connection() as connection:
+            row = connection.execute(
+                "SELECT available_copies FROM books WHERE id = ?;",
+                (book_id,),
+            ).fetchone()
+
+        if not row:
+            raise ValueError("Book does not exist.")
+
+        return int(row["available_copies"]) > 0
+
     # ---------------------------------------------------------
     # LENDING
     # ---------------------------------------------------------
@@ -580,3 +643,53 @@ class LibraryDAL:
         """
         rows = self.db.query_all(sql)
         return [(r["gender"], r["total"]) for r in rows]
+
+    # ---------------------------------------------------------
+    # RECOMMENDATIONS
+    # ---------------------------------------------------------
+    def recommend_books(self, member_id: int, limit: int = 5) -> list[RecommendationDTO]:
+        sql = """
+            SELECT b.id, b.title, b.author, b.isbn, b.category_id,
+                   c.name AS category_name, b.available_copies, b.total_copies,
+                   b.published_year,
+                   COALESCE(mc.category_loans, 0) AS category_loans,
+                   COALESCE(br.avg_rating, 0) AS avg_rating,
+                   (COALESCE(mc.category_loans, 0) * 1.5 + COALESCE(br.avg_rating, 0)) AS score
+            FROM books b
+            JOIN categories c ON c.id = b.category_id
+            LEFT JOIN (
+                SELECT b.category_id AS category_id, COUNT(*) AS category_loans
+                FROM loans l
+                JOIN books b ON b.id = l.book_id
+                WHERE l.member_id = ?
+                GROUP BY b.category_id
+            ) mc ON mc.category_id = b.category_id
+            LEFT JOIN (
+                SELECT book_id, AVG(rating) AS avg_rating
+                FROM ratings
+                GROUP BY book_id
+            ) br ON br.book_id = b.id
+            WHERE b.available_copies > 0
+              AND b.id NOT IN (SELECT book_id FROM loans WHERE member_id = ?)
+            ORDER BY score DESC, b.title
+            LIMIT ?;
+        """
+        with self.db.get_connection() as connection:
+            rows = connection.execute(sql, (member_id, member_id, limit)).fetchall()
+
+        recommendations: list[RecommendationDTO] = []
+        for row in rows:
+            book = BookResponseDTO(
+                id=row["id"],
+                title=row["title"],
+                author=row["author"],
+                isbn=row["isbn"],
+                category_id=row["category_id"],
+                category_name=row["category_name"],
+                total_copies=row["total_copies"],
+                available_copies=row["available_copies"],
+                published_year=row["published_year"],
+            )
+            recommendations.append(RecommendationDTO(book=book, score=float(row["score"])))
+
+        return recommendations
