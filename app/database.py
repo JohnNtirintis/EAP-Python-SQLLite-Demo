@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from pathlib import Path
 import sqlite3
+from typing import Any
 
 
 class DatabaseManager:
@@ -32,3 +33,12 @@ class DatabaseManager:
         with self.get_connection() as connection:
             connection.executescript(schema_sql)
 
+    def query_all(self, sql: str, params: tuple[Any, ...] | None = None) -> list[sqlite3.Row]:
+        with self.get_connection() as connection:
+            cursor = connection.execute(sql, params or ())
+            return cursor.fetchall()
+
+    def query_one(self, sql: str, params: tuple[Any, ...] | None = None) -> sqlite3.Row | None:
+        with self.get_connection() as connection:
+            cursor = connection.execute(sql, params or ())
+            return cursor.fetchone()
