@@ -1,30 +1,14 @@
-#imports
+#import GUI package
 import tkinter as tk
 from tkinter import ttk
-from Styles import setup_styles
-
+from Styles import *
 from SideBar_Menu import *
 from Dashboard_Page import Dashboard
 from Books_Page import Books
 from Statistics_Page import Statistics
 from Loans_Page import Loans
 from Members_Page import Members
-
-# ─── colour & font constants (match all other pages) ─────────────────────────
-BG_MAIN = "#D9D9D9"
-BG_CARD = "#EAEAEA"
-SIDEBAR_BG_DARK = "#353535"
-SIDEBAR_BG_DARKER = "#242424"
-SIDEBAR_BG_HIGHLIGHT = "#282828"
-SIDEBAR_FG_HIGHLIGHT = "#00D5E4"
-SIDEBAR_FG = "#CCCCCC"
-FG_DARK_BODY = "#1E1E1E"
-FG_MUTED_HEADERS = "#5E5E5E"
-BUTTON_BG = "#059CA7"
-FONT_MAIN  = ("Segoe UI", 12)
-FONT_BOLD  = ("Segoe UI", 12, "bold")
-FONT_TITLE = ("Segoe UI", 18)
-FONT_SMALL = ("Segoe UI", 10)
+from Recommend_Page import Recommend
 
 
 class MainWindowGUI(tk.Tk):
@@ -41,14 +25,20 @@ class MainWindowGUI(tk.Tk):
         #style
         setup_styles()
 
+
         #size config
-        self.geometry("1280x720+300+150")
+        self.geometry("1440x840+200+50")
         self.minsize(1280,720)
 
         #grid config
         self.grid_columnconfigure(0, weight=0) #sidebar
         self.grid_columnconfigure(1, weight=1) #main content
         self.grid_rowconfigure(0, weight=1)
+
+        #make all widgets focusable except buttons
+        self.bind_all("<Button-1>",lambda e: 
+            None if isinstance(e.widget, (tk.Button, ttk.Button)) else e.widget.focus_set()
+            )
 
         #create main content frame
         self.main_content_frame = tk.Frame(self, bg=BG_MAIN)
@@ -57,7 +47,7 @@ class MainWindowGUI(tk.Tk):
         self.main_content_frame.grid_columnconfigure(0,weight=1)
 
         #create sidebar frame
-        self.sidebar_frame = tk.Frame(self, width = 295, bg=SIDEBAR_BG_DARK)
+        self.sidebar_frame = tk.Frame(self, width = 295, bg=BG_DARK)
         self.sidebar_frame.grid(row=0,column=0, sticky = 'nsew')
         self.sidebar_frame.grid_propagate(False)
 
@@ -70,11 +60,13 @@ class MainWindowGUI(tk.Tk):
             "Κατάλογος Βιβλίων": Books,
             "Δανεισμός Βιβλίων": Loans,
             "Στατιστικά": Statistics,
-            "Μέλη": Members
+            "Μέλη": Members,
+            "Πρόταση Βιβλίου" : Recommend
+
             }
         
         #creates instances for each page and saves in dictionary
-        for P in (Dashboard,Books,Loans,Statistics,Members):
+        for P in (Dashboard,Books,Loans,Statistics,Members,Recommend):
             page_instance = P(self.main_content_frame, self)
             self.pages[P] = page_instance
             page_instance.grid(row=0,column=0,sticky='nsew')
@@ -89,6 +81,7 @@ class MainWindowGUI(tk.Tk):
     def change_page(self, page_name):
         target_page = self.page_map.get(page_name)
         frame = self.pages[target_page]
+        frame.reset()
         frame.tkraise()
 
 if __name__ == "__main__":

@@ -1,27 +1,10 @@
 #import GUI package
 import tkinter as tk
-from tkinter import ttk
-
-# ─── colour & font constants (match all other pages) ─────────────────────────
-BG_MAIN = "#D9D9D9"
-BG_CARD = "#EAEAEA"
-SIDEBAR_BG_DARK = "#353535"
-SIDEBAR_BG_DARKER = "#242424"
-SIDEBAR_BG_HIGHLIGHT = "#282828"
-SIDEBAR_FG_HIGHLIGHT = "#00D5E4"
-SIDEBAR_FG = "#CCCCCC"
-FG_DARK_BODY = "#1E1E1E"
-FG_MUTED_HEADERS = "#5E5E5E"
-BUTTON_BG = "#059CA7"
-FONT_MAIN  = ("Segoe UI", 12)
-FONT_BOLD  = ("Segoe UI", 12, "bold")
-FONT_TITLE = ("Segoe UI", 18)
-FONT_SMALL = ("Segoe UI", 10)
-
+from Styles import *
 
 class SideBar_Menu(tk.Frame):
     def __init__(self,parent, page_select):
-        super().__init__(parent)
+        super().__init__(parent,bg= BG_DARK)
         self.frame = parent
         self.default_active_btn_txt = "Αρχική"
         self.active_menu_btn = None
@@ -31,13 +14,12 @@ class SideBar_Menu(tk.Frame):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-
         #sidebar user label
         self.sidebar_bg_image = tk.PhotoImage(file= 'menu_bg_image.png')
         self.sidebar_lbl = tk.Label(
                             self.frame,
                             anchor = "center",
-                            bg=SIDEBAR_BG_DARK,               #match container
+                            bg=BG_DARK,               #match container
                             fg="#FFFFFF",
                             bd=0,
                             font = FONT_BOLD,
@@ -51,8 +33,8 @@ class SideBar_Menu(tk.Frame):
         self.sidebar_title_lbl = tk.Label(
                             self.frame,
                             anchor = "w",
-                            bg=SIDEBAR_BG_DARKER,
-                            fg=SIDEBAR_FG,
+                            bg=BG_DARKER,
+                            fg=FG_LIGHT,
                             bd=0,
                             padx=20,
                             pady=10,
@@ -79,10 +61,10 @@ class SideBar_Menu(tk.Frame):
                             self.frame,
                             anchor = "w",
                             text = text,
-                            bg=SIDEBAR_BG_DARK,
-                            activebackground=SIDEBAR_BG_HIGHLIGHT,
-                            fg=SIDEBAR_FG,
-                            activeforeground=SIDEBAR_FG_HIGHLIGHT,
+                            bg=BG_DARK,
+                            activebackground=BG_BLACK_ACCENT,
+                            fg=FG_LIGHT,
+                            activeforeground=ACCENT,
                             bd=0,
                             highlightthickness=0,
                             padx=20,
@@ -106,21 +88,21 @@ class SideBar_Menu(tk.Frame):
     #change colour on hover
     def on_hover(self,btn):
         if btn != self.active_menu_btn:
-            btn.config(bg=SIDEBAR_BG_HIGHLIGHT,fg=SIDEBAR_FG_HIGHLIGHT)
+            btn.config(bg=BG_BLACK_ACCENT,fg=ACCENT)
 
     #revert colour on hover exit 
     def on_leave(self,btn):
         if btn != self.active_menu_btn:
-            btn.config(bg=SIDEBAR_BG_DARK,fg=SIDEBAR_FG)
+            btn.config(bg=BG_DARK,fg=FG_LIGHT)
     
     #change colour on btn click
     def on_click(self,btn):
         #reset previous active btn
         if self.active_menu_btn is not None:
-            self.active_menu_btn.config(bg=SIDEBAR_BG_DARK,fg=SIDEBAR_FG)
+            self.active_menu_btn.config(bg=BG_DARK,fg=FG_LIGHT)
         
         #set new active btn
-        btn.config(bg=SIDEBAR_BG_HIGHLIGHT,fg=SIDEBAR_FG_HIGHLIGHT)
+        btn.config(bg=BG_BLACK_ACCENT,fg=ACCENT)
         self.active_menu_btn = btn
 
         #get page name

@@ -1,41 +1,22 @@
 #import GUI package
 import tkinter as tk
 from tkinter import ttk
-
-
+from Styles import *
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import datetime as datetime
 import pandas as pd
 
 
-# ─── colour & font constants (match all other pages) ─────────────────────────
-BG_MAIN = "#D9D9D9"
-BG_CARD = "#EAEAEA"
-SIDEBAR_BG_DARK = "#353535"
-SIDEBAR_BG_DARKER = "#242424"
-SIDEBAR_BG_HIGHLIGHT = "#282828"
-SIDEBAR_FG_HIGHLIGHT = "#00D5E4"
-SIDEBAR_FG = "#CCCCCC"
-FG_DARK_BODY = "#1E1E1E"
-FG_MUTED_HEADERS = "#5E5E5E"
-BUTTON_BG = "#059CA7"
-FONT_MAIN  = ("Segoe UI", 12)
-FONT_BOLD  = ("Segoe UI", 12, "bold")
-FONT_TITLE = ("Segoe UI", 18)
-FONT_SMALL = ("Segoe UI", 10)
-plt.rcParams["font.family"] = "Segoe UI"
-
 class Dashboard(tk.Frame):
-    def __init__(self,parent,controller):
+    def __init__(self,parent,app):
         super().__init__(parent,bg= BG_MAIN)
-        
+        self.app = app
+
         # make Dashboard expand fully
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         
-        self.controller = controller
-
         #frame creation and grid config 
         self.dashboardData_frame = tk.Frame(
                             self,
@@ -49,7 +30,7 @@ class Dashboard(tk.Frame):
         self.dashboardData_frame.grid_columnconfigure(1, weight=1)
         self.dashboardData_frame.grid_columnconfigure(2, weight=1)
         self.dashboardData_frame.grid_rowconfigure(0, weight=0)
-        self.dashboardData_frame.grid_rowconfigure(1, weight=1,minsize=300)
+        self.dashboardData_frame.grid_rowconfigure(1, weight=1,minsize=200)
         self.dashboardData_frame.grid_rowconfigure(2, weight=1,minsize=200)
 
         #images
@@ -106,8 +87,8 @@ class Dashboard(tk.Frame):
                     text= data["label"],
                     bd = 0,
                     bg = BG_CARD,
-                    fg= FG_MUTED_HEADERS,
-                    font= ("Segoe UI", 14)
+                    fg= FG_MUTED,
+                    font= FONT_SUBHEADER
                     )
         data_lbl.grid(row=0, column=1, sticky='e', padx=(0,20), pady=(10,0))
 
@@ -118,7 +99,7 @@ class Dashboard(tk.Frame):
                     text= data["value"],
                     bd = 0,
                     bg = BG_CARD,
-                    fg= FG_DARK_BODY,
+                    fg= FG_DARK,
                     font= ("Segoe UI", 20)
                     )
         data_value.grid(row=1, column=1, sticky='e', padx=(0,20), pady=(0,10))
@@ -128,54 +109,81 @@ class Dashboard(tk.Frame):
         container = tk.Frame(
                     self.dashboardData_frame,
                     bg = BG_CARD,
-                    height=200,
                     padx=10,
                     pady=10
                     )
         container.grid(row=2, columnspan=3, padx=15, pady=(10,0), sticky='nsew')
         container.grid_propagate(False)
+        container.grid_rowconfigure(0, weight=0)
+        container.grid_rowconfigure(1, weight=1)
+        container.grid_rowconfigure(2, weight=0)
+        container.grid_columnconfigure(0, weight=1)
+        container.grid_columnconfigure(1, weight=1)
+        container.grid_columnconfigure(2, weight=0)
 
         #table title
         table_title = tk.Label(
-                            container,
-                            anchor = "center",
-                            bg=BG_CARD,
-                            fg=FG_MUTED_HEADERS,
-                            bd=0,
-                            font = ("Segoe UI", 18),
-                            text = "Οφειλές"
-                            )
-        table_title.pack(side='top',anchor='w',padx=15, pady=5)
-
+                        container,
+                        anchor = "center",
+                        bg=BG_CARD,
+                        fg=FG_MUTED,
+                        bd=0,
+                        font = FONT_TITLE,
+                        text = "Οφειλές"
+                        )
+        table_title.grid(row=0, column=0, sticky='w',padx=(15,0),pady=10)
+        
+        self.return_btn = ttk.Button(
+                        container,
+                        text = "ΕΠΙΣΤΡΟΦΗ",
+                        width=18,
+                        style="CustomButton.TButton",
+                        cursor= 'hand2'
+                        )
+        self.return_btn.grid(row=0, column=1, sticky='e',padx=(0,15),pady=10)
+        self.return_btn.state(['disabled'])
 
         #table
         columns=("ID","Μέλος","Βιβλίο","ISBN","Καθυστέρηση","Ημ/νία Επιστροφής")
-        overdue_table = ttk.Treeview(container,
-                                columns=columns,
-                                show="headings",
-                                selectmode='browse',
-                                style="Custom.Treeview"
-                                )
-        
+        self.overdue_table = ttk.Treeview(
+                            container,
+                            columns=columns,
+                            show="headings",
+                            selectmode='browse',
+                            style="Custom.Treeview"
+                            )
+        self.overdue_table.grid(row=1, column=0,columnspan=2, sticky='nsew',padx=(15,), pady=(0,5))
+        self.overdue_table.bind("<<TreeviewSelect>>", lambda e: self.selection_btn())
+        self.overdue_table.bind("<FocusOut>", lambda e: self.overdue_table.selection_set(()))
+
         #vertical scrollbar
         v_scrollbar = ttk.Scrollbar(
                         container, 
                         orient='vertical',
-                        command=overdue_table.yview,
-                        style="Dashboard.Vertical.TScrollbar"
+                        command=self.overdue_table.yview,
+                        style="Vertical.TScrollbar"
                         )
-        v_scrollbar.set(0.2,0.5)
-        
-        v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=(35,0))
-        overdue_table.config(yscrollcommand=v_scrollbar.set)
+        v_scrollbar.grid(row=1, column=3, sticky='ns')
+        self.overdue_table.config(yscrollcommand=v_scrollbar.set)
+
+        #horizontal scrollbar
+        h_scrollbar = ttk.Scrollbar(
+                        container, 
+                        orient='horizontal',
+                        command=self.overdue_table.xview,
+                        style="Horizontal.TScrollbar"
+                        )
+        h_scrollbar.set(0.2,0.5)
+        h_scrollbar.grid(row=2, column=0, columnspan=2, sticky='we',padx=(15,0))
+        self.overdue_table.config(xscrollcommand=h_scrollbar.set)
 
 
         #headings & column width & alignment
         for col in columns:
-            overdue_table.heading(col, text=col, anchor='w')
-            overdue_table.column(col, 
+            self.overdue_table.heading(col, text=col, anchor='w')
+            self.overdue_table.column(col, 
                                 anchor="w", 
-                                width=150 if col != "ID" else 80, 
+                                width=120 if col != "ID" else 80, 
                                 minwidth=150 if col != "ID" else 80,
                                 stretch=True if col != "ID" else False)
 
@@ -189,11 +197,9 @@ class Dashboard(tk.Frame):
             ("0006", "Μαρία Παπαδοπούλου", "Οδύσσεια", "978-123-45-6789-0", "1 ημέρα", "27/04/2026")
             ]
         for r in rows:
-            overdue_table.insert("", "end", values=r)
+            self.overdue_table.insert("", "end", values=r)
 
-
-        overdue_table.pack(fill='both', expand=True)
-
+        autosize_content(self.overdue_table)
 
     def create_figure(self):  
         
@@ -207,8 +213,7 @@ class Dashboard(tk.Frame):
         #container
         container = tk.Frame(
                     self.dashboardData_frame,
-                    bg = BG_CARD,
-                    height=350
+                    bg = BG_CARD
                     )
         container.grid(row=1, columnspan=3, padx=15, pady=10, sticky='nsew')
         container.grid_propagate(False)
@@ -217,16 +222,18 @@ class Dashboard(tk.Frame):
         figure = plt.Figure(figsize=(5,1), dpi=100,frameon=False)
         figure_plot = figure.add_subplot(1,1,1)
         
-        #config spines (colour, width, visibility)
+        #config spines (colour, width, visibility) & ticks' color
         figure_plot.spines.right.set_visible(False)
         figure_plot.spines.top.set_visible(False)
         figure_plot.spines.left.set_linewidth(0.5)
         figure_plot.spines.bottom.set_linewidth(0.5)
-        figure_plot.spines.bottom.set_color(SIDEBAR_BG_DARK)
-        figure_plot.spines.left.set_color(SIDEBAR_BG_DARK)
+        figure_plot.spines.bottom.set_color(BG_DARK)
+        figure_plot.spines.left.set_color(BG_DARK)
+        figure_plot.tick_params('both',colors=BG_DARK)
 
+        #grid
+        figure_plot.axes.grid(axis='y',color = MPL_GRID, linewidth = 0.5)
         
-        figure_plot.axes.grid(axis='y',color = FG_MUTED_HEADERS, linewidth = 0.5)
         #adjust padding
         figure.subplots_adjust(top=0.75, bottom=0.15, left=0.08, right=0.95)
         
@@ -235,7 +242,7 @@ class Dashboard(tk.Frame):
                             x=-0.06,
                             y=1.1,
                             fontdict={'fontsize': 18,
-                                    'color': FG_MUTED_HEADERS,
+                                    'color': MPL_TEXT,
                                     'verticalalignment': 'center',
                                     "horizontalalignment" : 'left' },
                             loc='left',
@@ -243,13 +250,41 @@ class Dashboard(tk.Frame):
                             )
 
         #plot bg color        
-        figure_plot.set_facecolor(BG_CARD)
+        figure_plot.set_facecolor(MPL_BG)
         
         #figure to widget
         line_graph = FigureCanvasTkAgg(figure,container)
         widget = line_graph.get_tk_widget()
-        widget.configure(bg=BG_CARD)
+        widget.configure(bg=MPL_BG)
         widget.pack(fill='both', expand=True)
 
-        dataframe.plot(kind='line',legend=False, ax=figure_plot, linewidth = 2, linestyle = '-',color= SIDEBAR_FG_HIGHLIGHT)
+        dataframe.plot(kind='line',legend=False, ax=figure_plot, linewidth = 2, linestyle = '-',color= ACCENT)
 
+    def selection_btn(self):
+        overdue_table = self.overdue_table
+
+        #get selection
+        selected = overdue_table.selection() 
+        if not selected:
+            self.return_btn.state(['disabled'])   
+        else:
+            self.return_btn.state(['!disabled'])
+
+    #clear changes
+    def reset(self):
+        self.overdue_table.selection_set(())
+    
+#function to set col width based on text length
+def autosize_content(treeview):
+    tree_font = tk.font.Font(font=FONT_BOLD)
+            
+    for col in treeview["columns"]:
+        max_width = tree_font.measure(col) + 30
+
+        for item in treeview.get_children():
+            cell_text = treeview.set(item,col)
+            cell_width = tree_font.measure(str(cell_text)) +30
+            if cell_width > max_width:
+                max_width = cell_width
+
+        treeview.column(col, width = max_width, minwidth=max_width)
