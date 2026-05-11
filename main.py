@@ -66,7 +66,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.bootstrap import create_dal, create_business_logic
-from app.gui.main_window import MainWindow
+#from app.gui.main_window import MainWindow
 
 
 def main() -> None:
@@ -94,8 +94,8 @@ def main() -> None:
     # app = LibraryApp(business_logic)
     # app.mainloop()
 
-    app = MainWindow(business_logic)
-    app.mainloop()
+    #app = MainWindow(business_logic)
+    #app.mainloop()
 
 
 if __name__ == "__main__":

@@ -69,10 +69,10 @@ class LibraryBusinessLogic:
         
         
   def _next_registration_number(self) -> str:
-   """Δημιουργεί νέο μοναδικό αριθμό μέλους."""
-    members = self.dal.list_members()
-    max_id = max((int(member["id"]) for member in members), default=0)
-    return f"M-{1000 + max_id + 1}"
+       #Δημιουργεί νέο μοναδικό αριθμό μέλους.
+        members = self.dal.list_members()
+        max_id = max((int(member["id"]) for member in members), default=0)
+        return f"M-{1000 + max_id + 1}"
 
 
   def update_member(self, member_id: int, dto: UpdateMemberDTO) -> None:
@@ -95,20 +95,20 @@ class LibraryBusinessLogic:
     self.dal.deactivate_member(member_id)
 
   def renew_membership(self, member_id: int) -> None:
-  self.dal.renew_membership(member_id)
+      self.dal.renew_membership(member_id)
 
-  def borrow_book(self, dto: CreateLoanDTO) -> int:
-  """
-  Δημιουργεί νέο δανεισμό βιβλιου.
-  Flow:
-  1. Κληση DAL για δανεισμό
-  2. Επιστροφή loan_id
-  """
-  loan_id = self.dal.borrow_book(
-    member_id=dto.member_id,
-    book_id=dto.book_id
-  )
-  return loan_id
+      def borrow_book(self, dto: CreateLoanDTO) -> int:
+          """
+          Δημιουργεί νέο δανεισμό βιβλιου.
+          Flow:
+          1. Κληση DAL για δανεισμό
+          2. Επιστροφή loan_id
+          """
+          loan_id = self.dal.borrow_book(
+            member_id=dto.member_id,
+            book_id=dto.book_id
+          )
+          return loan_id
 
 def return_book(self, dto: ReturnLoanDTO) -> None:
   """
