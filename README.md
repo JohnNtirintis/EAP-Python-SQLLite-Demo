@@ -1,3 +1,9 @@
+To "freeze" (write the requirements) use command:
+pip freeze > requirements.txt
+
+To install the dependencies:
+pip install -r requirements.txt
+
 
 # Structure
 - `main.py`: headless runner
