@@ -1,0 +1,122 @@
+# ─── imports ─────────────────────────
+import tkinter as tk
+from gui.Styles import *
+
+class SideBar_Menu(tk.Frame):
+    def __init__(self,parent, page_select):
+        super().__init__(parent,bg= BG_DARK)
+        self.frame = parent
+        self.default_active_btn_txt = "Αρχική"
+        self.active_menu_btn = None
+        self.page_select = page_select
+
+        # make Sidebar expand fully
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        #sidebar user label
+        self.sidebar_bg_image = tk.PhotoImage(file= 'gui/Assets/menu_bg_image.png')
+        self.sidebar_lbl = tk.Label(
+                            self.frame,
+                            anchor = "center",
+                            bg=BG_DARK,               #match container
+                            fg="#FFFFFF",
+                            bd=0,
+                            font = FONT_BOLD,
+                            image = self.sidebar_bg_image,
+                            compound = "center",
+                            text = "Διαχειριστής"
+                            )
+        self.sidebar_lbl.pack()
+        
+        #sidebar title label
+        self.sidebar_title_lbl = tk.Label(
+                            self.frame,
+                            anchor = "w",
+                            bg=BG_DARKER,
+                            fg=FG_LIGHT,
+                            bd=0,
+                            padx=20,
+                            pady=10,
+                            font = FONT_MAIN,
+                            text = "ΜΕΝΟΥ ΠΛΟΗΓΗΣΗΣ"
+                            )
+        self.sidebar_title_lbl.pack(fill=tk.X)
+
+        #menu buttons' text
+        menu_buttons = ['Αρχική',
+                        'Κατάλογος Βιβλίων',
+                        'Δανεισμός Βιβλίων',
+                        'Στατιστικά',
+                        'Μέλη']
+
+        #menu buttons creation with correct txt
+        for i, text in enumerate(menu_buttons):
+           self.create_menu_button(text)
+
+    #=========================================
+    #Menu Buttons function
+    #=========================================
+    def create_menu_button(self,text):
+        
+        menu_btn = tk.Button(
+                            self.frame,
+                            anchor = "w",
+                            text = text,
+                            bg=BG_DARK,
+                            activebackground=BG_BLACK_ACCENT,
+                            fg=FG_LIGHT,
+                            activeforeground=ACCENT,
+                            bd=0,
+                            highlightthickness=0,
+                            padx=20,
+                            pady=20,
+                            command=lambda: self.on_click(menu_btn),
+                            font= FONT_MAIN,
+                            cursor="hand2"
+                            )
+        menu_btn.pack(fill=tk.X)
+
+        #change btn colours
+        menu_btn.bind("<Enter>",lambda e: self.on_hover(menu_btn))
+        menu_btn.bind("<Leave>",lambda e: self.on_leave(menu_btn))
+
+        #default active btn
+        if text == self.default_active_btn_txt:
+            self.on_click(menu_btn)
+
+        return menu_btn
+    
+    #=========================================
+    #Button Hover Colour function
+    #=========================================
+    def on_hover(self,btn):
+        if btn != self.active_menu_btn:
+            btn.config(bg=BG_BLACK_ACCENT,fg=ACCENT)
+
+    #=========================================
+    #Revert Colour on Hover Exit function
+    #=========================================
+    def on_leave(self,btn):
+        if btn != self.active_menu_btn:
+            btn.config(bg=BG_DARK,fg=FG_LIGHT)
+    
+    #=========================================
+    #Button Colour Change on Click function
+    #=========================================
+    def on_click(self,btn):
+        #reset previous active btn
+        if self.active_menu_btn is not None:
+            self.active_menu_btn.config(bg=BG_DARK,fg=FG_LIGHT)
+        
+        #set new active btn
+        btn.config(bg=BG_BLACK_ACCENT,fg=ACCENT)
+        self.active_menu_btn = btn
+
+        #get page name
+        self.page_select(btn.cget("text"))
+
+
+
+
+
