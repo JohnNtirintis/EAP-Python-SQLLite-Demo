@@ -1,8 +1,8 @@
-#import GUI package
+# ─── imports ─────────────────────────
 import tkinter as tk
-from tkinter import ttk, font
-from Styles import *
-from Dashboard_Page import autosize_content
+from tkinter import ttk
+from gui.Styles import *
+from gui.Dashboard_Page import autosize_content
 from datetime import *
 
 
@@ -75,17 +75,19 @@ class Loans(tk.Frame):
                         text = "ΕΠΙΣΤΡΟΦΗ",
                         width=18,
                         style="CustomButton.TButton",
-                        cursor= 'hand2'
+                        cursor= 'hand2',
+                        command= lambda: self.app.change_page("Βαθμολογία")
                         )
         self.return_button.grid(row=3, column=1, sticky='e',padx=(0,15),pady=10)
         self.return_button.state(['disabled'])
-
-        ####################################
-        
+       
         self.selectbook_loan()
         self.selectmember_loan()
         self.return_table()
 
+    #=========================================
+    #Update Loan Button function
+    #=========================================
     def update_loan_btn(self):
         #make selection True/False
         has_book = bool(self.searchbooks_table.selection())
@@ -97,7 +99,9 @@ class Loans(tk.Frame):
         else:
             self.loan_button.state(['disabled'])
 
-    #activate button on selection
+    #=========================================
+    #Activate Button on Selection
+    #=========================================
     def update_return_btn(self,button,table):     
         selected = table.selection()
         if not selected:
@@ -105,7 +109,9 @@ class Loans(tk.Frame):
         else:
             button.state(['!disabled'])
 
-    #select book
+    #=========================================
+    #Select Book from Table function
+    #=========================================
     def selectbook_loan(self):
         #container
         container = tk.Frame(
@@ -148,8 +154,8 @@ class Loans(tk.Frame):
         self.searchbar_book.grid(row=0, column=1, sticky='ew',padx=15,pady=10)
         #default text change on focus in/out
         self.searchbar_book_var.set("Αναζήτηση...")
-        self.searchbar_book.bind("<FocusIn>", lambda e: self.remove_placeholder_var(self.searchbar_book_var))
-        self.searchbar_book.bind("<FocusOut>", lambda e: self.add_placeholder_var(self.searchbar_book_var))
+        self.searchbar_book.bind("<FocusIn>", lambda e: remove_placeholder_var(self.searchbar_book_var))
+        self.searchbar_book.bind("<FocusOut>", lambda e: add_placeholder_var(self.searchbar_book_var))
         #show filtered results based on query
         self.searchbar_book.bind("<Return>", lambda e: search_results(databook,self.searchbar_book_var,
                                                                     self.searchbooks_table))
@@ -206,6 +212,9 @@ class Loans(tk.Frame):
         #visible toggle
         self.table_visible(self.searchbar_book_var,self.searchbooks_table,v_scrollbar,h_scrollbar)
 
+    #=========================================
+    #Select Member from Table function
+    #=========================================
     def selectmember_loan(self):
         #container
         container = tk.Frame(
@@ -249,8 +258,8 @@ class Loans(tk.Frame):
         #default text
         self.searchbar_member_var.set("Αναζήτηση...")
         #default change on focus in/out
-        self.searchbar_member.bind("<FocusIn>", lambda e: self.remove_placeholder_var(self.searchbar_member_var))
-        self.searchbar_member.bind("<FocusOut>", lambda e: self.add_placeholder_var(self.searchbar_member_var))
+        self.searchbar_member.bind("<FocusIn>", lambda e: remove_placeholder_var(self.searchbar_member_var))
+        self.searchbar_member.bind("<FocusOut>", lambda e: add_placeholder_var(self.searchbar_member_var))
         #show filtered results based on query
         self.searchbar_member.bind("<Return>", lambda e: search_results(datamember,self.searchbar_member_var,
                                                                     self.searchmember_table))
@@ -308,6 +317,9 @@ class Loans(tk.Frame):
         #visible toggle
         self.table_visible(self.searchbar_member_var,self.searchmember_table,v_scrollbar,h_scrollbar)
 
+    #=========================================
+    #Return Book function
+    #=========================================
     def return_table(self):
         #container
         container = tk.Frame(
@@ -337,7 +349,6 @@ class Loans(tk.Frame):
         self.loans_table.grid(row=0, column=0, sticky='nsew',padx=(15,5),pady=(0,5))
         #button status change based on selection
         self.loans_table.bind("<<TreeviewSelect>>", lambda e: self.update_return_btn(self.return_button,self.loans_table))
-        self.loans_table.bind("<FocusOut>", lambda e: self.loans_table.selection_set(()))
         
         #vertical scrollbar
         v_scrollbar = ttk.Scrollbar(
@@ -373,16 +384,10 @@ class Loans(tk.Frame):
 
         #call autosizing function
         autosize_content(self.loans_table)
-
-    #placeholder for searchbar
-    def add_placeholder_var(self,searchbar_var):
-        if searchbar_var.get() == "":
-            searchbar_var.set("Αναζήτηση...")
-    def remove_placeholder_var(self,searchbar_var):
-        if searchbar_var.get() == "Αναζήτηση...":    
-            searchbar_var.set("")
     
-    #table visbility toggle
+    #=========================================
+    #Table Visibility Toggle function
+    #=========================================
     def table_visible(self,searchbar_var,table,scrollv,scroll_h):
         if searchbar_var.get() == "Αναζήτηση...":
             table.grid_remove()
@@ -394,7 +399,9 @@ class Loans(tk.Frame):
             scroll_h.grid()
 
 
-    #clear changes
+    #=========================================
+    #Reset Selections on Page Change function
+    #=========================================
     def reset(self):
         self.loans_table.selection_set(())
         self.searchbooks_table.selection_set(())
@@ -409,15 +416,28 @@ def filter_books(all_books, query): #<-ειναι bussiness logic αλλα το 
         if any(query in str(cell).lower() for cell in row)
     ]
 
+#=========================================
+#Placeholder Text for Searchbar Add/Remove function
+#=========================================
+def add_placeholder_var(searchbar_var):
+    if searchbar_var.get() == "":
+        searchbar_var.set("Αναζήτηση...")
+def remove_placeholder_var(searchbar_var):
+    if searchbar_var.get() == "Αναζήτηση...":    
+        searchbar_var.set("")
+
+#=========================================
+#Search Results function
+#=========================================
 def search_results(data,searchbar_var,table):
     query = searchbar_var.get()
     results = filter_books(data, query)
 
-    # καθαρισμός πίνακα
+    #clear table
     for item in table.get_children():
         table.delete(item)
 
-    # εμφάνιση νέων αποτελεσμάτων
+    #show filtered reesults
     for row in results:
         table.insert("", "end", values=row)
 

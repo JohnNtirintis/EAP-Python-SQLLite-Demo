@@ -1,211 +1,237 @@
-# gui/Book_Edit_Page.py
-# Embedded full-page panel — Προσθήκη / Ενημέρωση Βιβλίου.
-# Αντικαθιστά τον κατάλογο (full-page swap) όταν ανοίγει.
-#
-# Callbacks:
-#   on_save()  → μετά από επιτυχή αποθήκευση
-#   on_back()  → κλικ στο breadcrumb "← Κατάλογος Βιβλίων"
-
+# ─── imports ─────────────────────────
 import tkinter as tk
-from tkinter import ttk, messagebox
-
-from app.dto import CreateBookDTO, UpdateBookDTO
-
-from gui.styles import (
-    BG_MAIN, BG_CARD, BG_FILTER, BG_DARK, BG_DARKER,
-    ACCENT, FG_LIGHT, FG_DARK, FG_MUTED,
-    FONT_MAIN, FONT_BOLD, FONT_TITLE, FONT_SEC, FONT_SMALL,
-    FONT_TREE, FONT_THEAD, FONT_CRUMB,
-    CHART_COLORS, MPL_BG, MPL_GRID, MPL_TEXT,
-)
+from tkinter import ttk
+from gui.Styles import *
 
 
-class BookEditPanel(tk.Frame):
+class BookEdit(tk.Frame):
+    def __init__(self,parent,app):
+        super().__init__(parent,bg=BG_MAIN)
+        self.app = app
 
-
-    def __init__(self, parent, service,
-                 book: dict | None = None,
-                 on_save=None, on_back=None):
-        super().__init__(parent, bg=BG_MAIN)
-        self.service = service
-        self.book    = book
-        self.on_save = on_save
-        self.on_back = on_back
+        #make BookEdit expand fully
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        self._build()
 
-    def _build(self):
-        outer = tk.Frame(self, bg=BG_MAIN, padx=30, pady=22)
-        outer.pack(fill="both", expand=True)
-        outer.grid_columnconfigure(0, weight=1)
+        #frame creation and grid config
+        self.book_edit_frame = tk.Frame(
+                            self,
+                            bg = BG_MAIN,
+                            padx=30,
+                            pady=20
+                            )
+        self.book_edit_frame.grid(row=0,column=0, sticky='nswe')
 
-        # Breadcrumb
-        crumb = tk.Label(outer, text="← Κατάλογος Βιβλίων",
-                         bg=BG_MAIN, fg=FG_MUTED,
-                         font=FONT_CRUMB, cursor="hand2", anchor="w")
-        crumb.grid(row=0, column=0, sticky="w", pady=(0, 4))
-        crumb.bind("<Button-1>", lambda e: self._go_back())
-        crumb.bind("<Enter>",    lambda e: crumb.config(fg=FG_DARK))
-        crumb.bind("<Leave>",    lambda e: crumb.config(fg=FG_MUTED))
+        self.book_edit_frame.grid_propagate(False)
+        self.book_edit_frame.grid_columnconfigure(0, weight=1)
+        self.book_edit_frame.grid_columnconfigure(1, weight=0)
+        self.book_edit_frame.grid_rowconfigure(0, weight=0)
+        self.book_edit_frame.grid_rowconfigure(1, weight=0)
+        self.book_edit_frame.grid_rowconfigure(2, weight=0)
+        self.book_edit_frame.grid_rowconfigure(3, weight=0)
 
-        # Page title
-        tk.Label(outer, text="Προσθήκη / Ενημέρωση Βιβλίου",
-                 bg=BG_MAIN, fg=FG_DARK, font=FONT_TITLE,
-                 anchor="w").grid(row=1, column=0, sticky="w", pady=(0, 16))
+        #back button icon
+        self.back_btn_icon = tk.PhotoImage(file= 'gui/Assets/back_btn_icon.png')
+        #back button
+        back_btn = tk.Button(
+                            self.book_edit_frame,
+                            anchor='w',
+                            compound='left',
+                            image=self.back_btn_icon,
+                            text='Κατάλογος Βιβλίων',
+                            bd=0,
+                            width=160,
+                            padx=10,
+                            bg= BG_MAIN,
+                            activebackground=BG_MAIN,
+                            activeforeground=FG_MUTED,
+                            fg= FG_MUTED,
+                            font= FONT_MAIN,
+                            command= lambda: self.app.change_page("Κατάλογος Βιβλίων"),
+                            cursor="hand2"
+                            )
+        back_btn.grid(row=0,column=0,padx=5,pady=(0,10),sticky='w')
 
-        # Card
-        card = tk.Frame(outer, bg=BG_CARD, padx=26, pady=22)
-        card.grid(row=2, column=0, sticky="new")
-        card.grid_columnconfigure(1, weight=1)
+        #page title 
+        book_edit_label = tk.Label(
+                            self.book_edit_frame,
+                            anchor='w',
+                            text='Προσθήκη Βιβλίου',
+                            bd=0,
+                            bg= BG_MAIN,
+                            fg= FG_MUTED,
+                            font= FONT_TITLE
+                            )
+        book_edit_label.grid(row=1,column=0,padx=15, pady=(0,15), sticky='nsew')
 
-        # Text fields
-        field_defs = [
-            ("Τίτλος:",       "title"),
-            ("Συγγραφέας:",   "author"),
-            ("Έτος έκδοσης:", "year"),
-            ("ISBN:",         "isbn"),
-        ]
-        self._entries: dict[str, tk.Entry] = {}
-        for r, (lbl, key) in enumerate(field_defs):
-            tk.Label(card, text=lbl, bg=BG_CARD, fg=FG_DARK,
-                     font=FONT_MAIN, anchor="w", width=14).grid(
-                row=r, column=0, sticky="w", pady=8, padx=(0, 16))
-            e = tk.Entry(card, font=FONT_MAIN, relief="flat", bd=1,
-                         bg="#FFFFFF", fg=FG_DARK,
-                         insertbackground=FG_DARK,
-                         highlightthickness=1,
-                         highlightbackground="#CCCCCC",
-                         highlightcolor=ACCENT)
-            e.grid(row=r, column=1, sticky="ew", ipady=6, pady=8)
-            self._entries[key] = e
+        #add/edit button
+        self.edit_button = ttk.Button(
+                        self.book_edit_frame,
+                        text = "ΠΡΟΣΘΗΚΗ",
+                        width=18,
+                        style="CustomButton.TButton",
+                        cursor= 'hand2'
+                        )
+        self.edit_button.grid(row=3, column=0, sticky='e',padx=5,pady=5)
 
-        # Κατηγορία
-        cat_row = len(field_defs)
-        tk.Label(card, text="Κατηγορία:", bg=BG_CARD, fg=FG_DARK,
-                 font=FONT_MAIN, anchor="w", width=14).grid(
-            row=cat_row, column=0, sticky="w", pady=8, padx=(0, 16))
-        self._cat_var = tk.StringVar()
-        self._cat_cb  = ttk.Combobox(card, textvariable=self._cat_var,
-                                     state="readonly", font=FONT_MAIN)
-        self._cat_cb.grid(row=cat_row, column=1, sticky="ew", ipady=5, pady=8)
+        #delete button
+        self.delete_button = ttk.Button(
+                        self.book_edit_frame,
+                        text = "ΔΙΑΓΡΑΦΗ",
+                        width=18,
+                        style="CustomButton.TButton",
+                        cursor= 'hand2'
+                        )
+        self.delete_button.grid(row=3, column=1, sticky='e',padx=(5,15),pady=5)
 
-        # Απόθεμα
-        sp_row = cat_row + 1
-        tk.Label(card, text="Απόθεμα:", bg=BG_CARD, fg=FG_DARK,
-                 font=FONT_MAIN, anchor="w", width=14).grid(
-            row=sp_row, column=0, sticky="w", pady=8, padx=(0, 16))
-        self._copies_var = tk.IntVar(value=1)
-        tk.Spinbox(card, from_=1, to=999, textvariable=self._copies_var,
-                   font=FONT_MAIN, relief="flat", bd=1,
-                   bg="#FFFFFF", fg=FG_DARK,
-                   insertbackground=FG_DARK, width=8,
-                   buttonbackground=BG_CARD).grid(
-            row=sp_row, column=1, sticky="w", ipady=5, pady=8)
+        #container for book data
+        container = tk.Frame(
+                    self.book_edit_frame,
+                    bd=0,
+                    bg= BG_CARD,
+                    height=400,
+                    padx=10,
+                    pady=10
+                    )
+        container.grid(row=2, columnspan=2, column=0, padx=15, pady=10, sticky='nsew')
+        container.grid_propagate(False)
+        container.grid_rowconfigure(0, weight=0)
+        container.grid_rowconfigure(1, weight=1)
+        container.grid_rowconfigure(2, weight=1)
+        container.grid_rowconfigure(3, weight=1)
+        container.grid_rowconfigure(4, weight=1)
+        container.grid_rowconfigure(4, weight=1)
+        container.grid_columnconfigure(0, weight=0)
+        container.grid_columnconfigure(1, weight=1)
 
-        # Κουμπί (bottom-right)
-        btn_frame = tk.Frame(card, bg=BG_CARD)
-        btn_frame.grid(row=sp_row + 1, column=0, columnspan=2,
-                       sticky="e", pady=(18, 0))
-        self._make_btn(btn_frame, "ΠΡΟΣΘΗΚΗ / ΕΝΗΜΕΡΩΣΗ",
-                       self._save, bg=ACCENT, fg=FG_DARK).pack(side="right")
+        self.entries = {}
 
-        self._reload_categories()
-        if self.book:
-            self._prefill()
+        # =========================================
+        # Labels function
+        # =========================================
+        def create_labels(row,text):
+            field_lbl = tk.Label(
+                    container,
+                    anchor = "ne",
+                    text= text,
+                    bd = 0,
+                    bg = BG_CARD,
+                    fg= FG_MUTED,
+                    font= FONT_BOLD
+                    )
+            field_lbl.grid(row=row, column=0, sticky='w',padx=(15,0),pady=5)
+        
+        # =========================================
+        # Entries function
+        # =========================================
+        def create_entries(row):
+            entry_box = ttk.Entry(
+                    container,
+                    font = FONT_MAIN,
+                    width=50,
+                    style="CustomEntry.TEntry",
+                    exportselection=False,
+                    validate='focusout'
+                    )
+            entry_box.grid(row=row, column=1, sticky='w',padx=20,pady=5)
+            
+            return entry_box
 
-    def _reload_categories(self):
-        cats            = self.service.list_categories()
-        self._cat_names = [c["name"] for c in cats]
-        self._cat_ids   = [c["id"]   for c in cats]
-        self._cat_cb["values"] = self._cat_names
+        #entry labels
+        entry_labels = ["Τίτλος:","Συγγραφέας:","Έτος έκδοσης:","ISBN:",
+                        "Κατηγορία:","Απόθεμα"]
+        
+        keys = ["title","author","year","isbn","category_name","copies"]
+        #loop for entry labels with corresponding text
+        for i,text in enumerate(entry_labels):
+            row = i
+            create_labels(row,text)
+        for i in range(4):
+            row=i
+            current_key = keys[i]
+            entry = create_entries(row)
+            self.entries[current_key] = entry
+        
+        self.category_var = tk.StringVar()
+        #category list
+        self.cat_list = ttk.Combobox(
+                        container,
+                        state="readonly",
+                        font=FONT_MAIN,
+                        width=40,
+                        values=categoriesdata,
+                        textvariable=self.category_var,
+                        style="CustomCombobox.TCombobox"
+                        )
+        self.cat_list.grid(row=4, column=1, sticky="w", padx=20, pady=5)
 
-    def _prefill(self):
-        b = self.book
-        self._entries["title"].insert(0,  b.get("title", ""))
-        self._entries["author"].insert(0, b.get("author", ""))
-        self._entries["year"].insert(0,   str(b.get("published_year") or ""))
-        self._entries["isbn"].insert(0,   b.get("isbn", ""))
-        self._copies_var.set(b.get("total_copies", 1))
-        try:
-            cat_id = b.get("category_id")
-            if cat_id and cat_id in self._cat_ids:
-                self._cat_var.set(self._cat_names[self._cat_ids.index(cat_id)])
-            elif b.get("category_name") in self._cat_names:
-                self._cat_var.set(b["category_name"])
-        except (ValueError, IndexError):
-            pass
+        self.copies_var = tk.IntVar(value=0)
+        #stock spinbox
+        self.stock = tk.Spinbox(
+            container, 
+            from_=0, 
+            to=999,
+            width=8,
+            justify='center',
+            font=FONT_MAIN, 
+            textvariable=self.copies_var,
+            bg='white',
+            fg=FG_DARK,
+            bd=1,
+            relief="flat",
+            highlightthickness=1,
+            highlightbackground=FG_DARK,
+            highlightcolor=ACCENT,
+            buttonbackground='white',
+            buttondownrelief = 'flat',
+            buttonuprelief = 'flat',
+            exportselection=False,
+            insertbackground=ACCENT_DARK,
+            repeatdelay=150,
+            repeatinterval=50
+            )
+        self.stock.grid(row=5, column=1, sticky="w",padx=20, pady=5,ipady=2)
 
-    def _clear_form(self):
-        for e in self._entries.values():
-            e.delete(0, "end")
-        self._cat_var.set("")
-        self._copies_var.set(1)
-        self.book = None
+    def reset(self):
+        #clear entries
+        for entry in self.entries.values():
+            entry.delete(0, tk.END)
 
-    def _save(self):
-        try:
-            title  = self._entries["title"].get().strip()
-            author = self._entries["author"].get().strip()
-            yr_str = self._entries["year"].get().strip()
-            isbn   = self._entries["isbn"].get().strip()
-            cat_n  = self._cat_var.get()
-            copies = int(self._copies_var.get())
+        #clear combobox & spinbox
+        self.category_var.set("")
+        self.copies_var.set(0)
 
-            if not title or not author or not cat_n:
-                messagebox.showwarning(
-                    "Έλλειψη",
-                    "Τίτλος, Συγγραφέας και Κατηγορία είναι υποχρεωτικά.")
-                return
+    # =========================================
+    # Prefill Fields function
+    # =========================================
+    def prefill(self,b):
 
-            year   = int(yr_str) if yr_str else None
-            cat_id = self._cat_ids[self._cat_names.index(cat_n)]
+        self.entries["title"].delete(0, tk.END)
+        self.entries["title"].insert(0, b.get("title", ""))
 
-            if self.book:
-                self.service.update_book(UpdateBookDTO(
-                    id=self.book["id"], title=title, author=author,
-                    isbn=isbn, category_id=cat_id,
-                    total_copies=copies, published_year=year,
-                ))
-                messagebox.showinfo("Επιτυχία", f"Το βιβλίο «{title}» ενημερώθηκε.")
-            else:
-                self.service.add_book(CreateBookDTO(
-                    title=title, author=author, isbn=isbn,
-                    category_id=cat_id, total_copies=copies,
-                    available_copies=copies, published_year=year,
-                ))
-                messagebox.showinfo("Επιτυχία", f"Το βιβλίο «{title}» προστέθηκε.")
-                self._clear_form()
+        self.entries["author"].delete(0, tk.END)
+        self.entries["author"].insert(0, b.get("author", ""))
 
-            if self.on_save:
-                self.on_save()
+        self.entries["year"].delete(0, tk.END)
+        self.entries["year"].insert(0, str(b.get("published_year") or ""))
 
-        except Exception as ex:
-            messagebox.showerror("Σφάλμα", str(ex))
+        self.entries["isbn"].delete(0, tk.END)
+        self.entries["isbn"].insert(0, b.get("isbn", ""))
 
-    def load_book(self, book: dict | None):
-        """Φορτώνει βιβλίο για edit ή καθαρίζει για add. Καλείται από Books_Page."""
-        self._clear_form()
-        self.book = book
-        self._reload_categories()
-        if book:
-            self._prefill()
+        # category
+        self.category_var.set(b["category_name"])
+        # stock
+        self.copies_var.set(b["total_copies"])
 
-    def refresh_categories(self):
-        self._reload_categories()
 
-    def _go_back(self):
-        if self.on_back:
-            self.on_back()
 
-    @staticmethod
-    def _make_btn(parent, text, command, bg=BG_DARK, fg=FG_LIGHT):
-        btn = tk.Button(parent, text=text, command=command,
-                        bg=bg, fg=fg,
-                        activebackground=BG_DARKER, activeforeground=FG_DARK,
-                        relief="flat", font=("Segoe UI", 11),
-                        padx=16, pady=7, cursor="hand2",
-                        bd=0, highlightthickness=0)
-        btn.bind("<Enter>", lambda e: btn.config(bg=BG_DARKER))
-        btn.bind("<Leave>", lambda e: btn.config(bg=bg))
-        return btn
+
+# Dummy categories
+categoriesdata = [
+    "Μυθιστόρημα",
+    "Φαντασία",
+    "Αστυνομικό",
+    "Δράμα",
+    "Περιπέτεια",
+    "Παιδικό",
+]

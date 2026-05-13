@@ -1,156 +1,201 @@
-# gui/Categories_Page.py
-# Embedded full-page panel — Προσθήκη / Διαχείριση Κατηγοριών.
-# Αντικαθιστά τον κατάλογο (full-page swap) όταν ανοίγει.
-#
-# Callbacks:
-#   on_change() → μετά από add / update / delete
-#   on_back()   → κλικ στο breadcrumb "← Κατάλογος Βιβλίων"
-
+# ─── imports ─────────────────────────
 import tkinter as tk
-from tkinter import ttk, messagebox
-
-from gui.styles import (
-    BG_MAIN, BG_CARD, BG_FILTER, BG_DARK, BG_DARKER,
-    ACCENT, FG_LIGHT, FG_DARK, FG_MUTED,
-    FONT_MAIN, FONT_BOLD, FONT_TITLE, FONT_SEC, FONT_SMALL,
-    FONT_TREE, FONT_THEAD, FONT_CRUMB,
-    CHART_COLORS, MPL_BG, MPL_GRID, MPL_TEXT,
-)
+from tkinter import ttk
+from gui.Styles import *
 
 
-class CategoriesPanel(tk.Frame):
-
-    def __init__(self, parent, service, on_change=None, on_back=None):
+class Categories(tk.Frame):
+    def __init__(self, parent,app):
         super().__init__(parent, bg=BG_MAIN)
-        self.service   = service
-        self.on_change = on_change
-        self.on_back   = on_back
+        self.app   = app
+
+        #make Categories expand fully
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        self._build()
 
-    def _build(self):
-        outer = tk.Frame(self, bg=BG_MAIN, padx=30, pady=22)
-        outer.pack(fill="both", expand=True)
-        outer.grid_columnconfigure(0, weight=1)
+        #frame creation and grid config
+        self.categories_frame = tk.Frame(
+                            self,
+                            bg = BG_MAIN,
+                            padx=30,
+                            pady=20
+                            )
+        self.categories_frame.grid(row=0,column=0, sticky='nswe')
 
-        # Breadcrumb
-        crumb = tk.Label(outer, text="← Κατάλογος Βιβλίων",
-                         bg=BG_MAIN, fg=FG_MUTED,
-                         font=FONT_CRUMB, cursor="hand2", anchor="w")
-        crumb.grid(row=0, column=0, sticky="w", pady=(0, 4))
-        crumb.bind("<Button-1>", lambda e: self._go_back())
-        crumb.bind("<Enter>",    lambda e: crumb.config(fg=FG_DARK))
-        crumb.bind("<Leave>",    lambda e: crumb.config(fg=FG_MUTED))
+        self.categories_frame.grid_propagate(False)
+        self.categories_frame.grid_columnconfigure(0, weight=1)
+        self.categories_frame.grid_columnconfigure(1, weight=0)
+        self.categories_frame.grid_columnconfigure(2, weight=0)
+        self.categories_frame.grid_rowconfigure(0, weight=0)
+        self.categories_frame.grid_rowconfigure(1, weight=0)
+        self.categories_frame.grid_rowconfigure(2, weight=0)
+        self.categories_frame.grid_rowconfigure(3, weight=0)
 
-        # Page title
-        tk.Label(outer, text="Προσθήκη Κατηγορίας",
-                 bg=BG_MAIN, fg=FG_DARK, font=FONT_TITLE,
-                 anchor="w").grid(row=1, column=0, sticky="w", pady=(0, 16))
+        #back button icon
+        self.back_btn_icon = tk.PhotoImage(file= 'gui/Assets/back_btn_icon.png')
+        #back button
+        back_btn = tk.Button(
+                            self.categories_frame,
+                            anchor='w',
+                            compound='left',
+                            image=self.back_btn_icon,
+                            text='Κατάλογος Βιβλίων',
+                            bd=0,
+                            width=160,
+                            padx=10,
+                            bg= BG_MAIN,
+                            activebackground=BG_MAIN,
+                            activeforeground=FG_MUTED,
+                            fg= FG_MUTED,
+                            font= FONT_MAIN,
+                            command= lambda: self.app.change_page("Κατάλογος Βιβλίων"),
+                            cursor="hand2"
+                            )
+        back_btn.grid(row=0,column=0,padx=5,pady=(0,10),sticky='w')
 
-        # Card
-        card = tk.Frame(outer, bg=BG_CARD, padx=22, pady=20)
-        card.grid(row=2, column=0, sticky="new")
-        card.grid_columnconfigure(0, weight=1)
-        card.grid_columnconfigure(1, weight=2)
+        #title
+        category_label = tk.Label(
+            self.categories_frame,
+            anchor='w',
+            text="Προσθήκη Κατηγορίας",
+            bd=0,
+            bg=BG_MAIN,
+            fg=FG_MUTED,
+            font=FONT_TITLE
+            )
+        category_label.grid(row=1, column=0,padx=15, pady=(0,15), sticky='nsew')
 
-        # Αριστερά: Combobox
-        tk.Label(card, text="Κατηγορίες:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN,
-                 anchor="w").grid(row=0, column=0, sticky="w",
-                                  padx=(0, 20), pady=(0, 6))
-        self._sel_var = tk.StringVar()
-        self._combo   = ttk.Combobox(card, textvariable=self._sel_var,
-                                     state="readonly", font=FONT_MAIN)
-        self._combo.grid(row=1, column=0, sticky="ew", padx=(0, 20), ipady=5)
-        self._combo.bind("<<ComboboxSelected>>", self._on_combo_select)
+        #container
+        container = tk.Frame(
+            self.categories_frame,
+            bg = BG_CARD,
+            height=200,
+            padx=10,
+            pady=10
+            )
+        container.grid(row=2, columnspan=3,column=0, padx=15, pady=30, sticky='nsew')
+        container.grid_propagate(False)
+        container.grid_columnconfigure(0, weight=1)
+        container.grid_columnconfigure(1, weight=1)
+        container.grid_rowconfigure(0, weight=0)
+        container.grid_rowconfigure(1, weight=0)
 
-        # Δεξιά: Entry
-        tk.Label(card, text="Νέα Κατηγορία:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN,
-                 anchor="w").grid(row=0, column=1, sticky="w", pady=(0, 6))
-        self._name_var = tk.StringVar()
-        tk.Entry(card, textvariable=self._name_var,
-                 font=FONT_MAIN, relief="flat", bd=2,
-                 bg="#FFFFFF", fg=FG_DARK,
-                 insertbackground=FG_DARK).grid(
-            row=1, column=1, sticky="ew", ipady=6)
 
-        # Κουμπιά (bottom-right)
-        btn_frame = tk.Frame(card, bg=BG_CARD)
-        btn_frame.grid(row=2, column=0, columnspan=2,
-                       sticky="e", pady=(20, 0))
-        self._make_btn(btn_frame, "ΠΡΟΣΘΗΚΗ / ΕΝΗΜΕΡΩΣΗ",
-                       self._save, bg=ACCENT, fg=FG_DARK).pack(
-            side="left", padx=(0, 10))
-        self._make_btn(btn_frame, "ΔΙΑΓΡΑΦΗ",
-                       self._delete, bg=ACCENT, fg=FG_DARK).pack(side="left")
+        list_lbl = tk.Label(
+                    container,
+                    anchor = "ne",
+                    text= "Κατηγορίες:",
+                    bd = 0,
+                    bg = BG_CARD,
+                    fg= FG_MUTED,
+                    font= FONT_SUBHEADER_BOLD
+                    )
+        list_lbl.grid(row=0, column=0, sticky='w',padx=(15,0),pady=(15,5))
 
-        self._reload()
+        entry_lbl = tk.Label(
+                    container,
+                    anchor = "ne",
+                    text= "Νέα Κατηγορία:",
+                    bd = 0,
+                    bg = BG_CARD,
+                    fg= FG_MUTED,
+                    font= FONT_SUBHEADER_BOLD
+                    )
+        entry_lbl.grid(row=0, column=1, sticky='w',padx=(15,0),pady=(15,5))
 
-    def _reload(self):
-        self._cats = self.service.list_categories()
-        cat_names  = [c["name"] for c in self._cats]
-        self._combo["values"] = cat_names
-        if self._sel_var.get() not in cat_names:
-            self._sel_var.set("")
+        #new category entry box
+        self.new_category = ttk.Entry(
+                    container,
+                    font = FONT_MAIN,
+                    style="CustomEntry.TEntry",
+                    width=40,
+                    exportselection=False,
+                    validate='focusout'
+                    )
+        self.new_category.grid(row=1, column=1, sticky='w',padx=15,pady=5)
 
-    def _on_combo_select(self, _=None):
-        self._name_var.set(self._sel_var.get())
+        #category list
+        self.cat_list = ttk.Combobox(
+                        container,
+                        state="readonly",
+                        font=FONT_MAIN,
+                        width=40,
+                        values=categoriesdata,
+                        style="CustomCombobox.TCombobox"
+                        )
+        self.cat_list.grid(row=1, column=0, sticky="w", padx=15, pady=5)
+        self.cat_list.bind("<<ComboboxSelected>>",lambda e: self.selection_to_entry())
 
-    def _save(self):
-        name = self._name_var.get().strip()
-        if not name:
-            messagebox.showwarning("Έλλειψη", "Πληκτρολογήστε όνομα κατηγορίας.")
-            return
-        sel_name = self._sel_var.get()
-        cat_ids  = {c["name"]: c["id"] for c in self._cats}
-        try:
-            if sel_name and sel_name in cat_ids:
-                self.service.update_category(cat_ids[sel_name], name)
-            else:
-                self.service.add_category(name)
-            self._name_var.set("")
-            self._sel_var.set("")
-            self._reload()
-            if self.on_change:
-                self.on_change()
-        except Exception as ex:
-            messagebox.showerror("Σφάλμα", str(ex))
+        #buttons
+        self.edit_btn = ttk.Button(
+                        self.categories_frame,
+                        text = "ΠΡΟΣΘΗΚΗ",
+                        width=18,
+                        style="CustomButton.TButton",
+                        cursor= 'hand2'
+                        )
+        self.edit_btn.grid(row=3, column=0,sticky='e',padx=5,pady=5)
 
-    def _delete(self):
-        sel = self._sel_var.get()
-        if not sel:
-            messagebox.showwarning("Επιλογή", "Επιλέξτε κατηγορία για διαγραφή.")
-            return
-        cat_ids = {c["name"]: c["id"] for c in self._cats}
-        if not messagebox.askyesno("Διαγραφή", f"Να διαγραφεί η κατηγορία «{sel}»;"):
-            return
-        try:
-            self.service.delete_category(cat_ids[sel])
-            self._name_var.set("")
-            self._sel_var.set("")
-            self._reload()
-            if self.on_change:
-                self.on_change()
-        except Exception as ex:
-            messagebox.showerror("Σφάλμα", str(ex))
+        self.delete_btn = ttk.Button(
+                        self.categories_frame,
+                        text = "ΔΙΑΓΡΑΦΗ",
+                        width=18,
+                        style="CustomButton.TButton",
+                        cursor= 'hand2'
+                        )
+        self.delete_btn.grid(row=3, column=1, sticky='e',padx=5,pady=5)
 
-    def refresh(self):
-        self._reload()
+        self.clear_btn = ttk.Button(
+                        self.categories_frame,
+                        text = "ΚΑΘΑΡΙΣΜΟΣ",
+                        width=18,
+                        style="CustomButton.TButton",
+                        cursor= 'hand2',
+                        command= self.clear_cb
+                        )
+        self.clear_btn.grid(row=3, column=2,sticky='e',padx=(5,15),pady=5)
+    
+    #=========================================
+    #Combobox Selection to Entry function
+    #=========================================
+    def selection_to_entry(self):
+        entry = self.new_category
+        cat_list = self.cat_list
+        
+        #get selection items
+        selected = cat_list.get()
 
-    def _go_back(self):
-        if self.on_back:
-            self.on_back()
+        #clear entry box
+        entry.delete(0,'end')
+        #insert list item to entry box
+        entry.insert(0,selected)
 
-    @staticmethod
-    def _make_btn(parent, text, command, bg=BG_DARK, fg=FG_LIGHT):
-        btn = tk.Button(parent, text=text, command=command,
-                        bg=bg, fg=fg,
-                        activebackground=BG_DARKER, activeforeground=FG_DARK,
-                        relief="flat", font=("Segoe UI", 11),
-                        padx=16, pady=7, cursor="hand2",
-                        bd=0, highlightthickness=0)
-        btn.bind("<Enter>", lambda e: btn.config(bg=BG_DARKER))
-        btn.bind("<Leave>", lambda e: btn.config(bg=bg))
-        return btn
+        #change btn text
+        self.edit_btn.config(text="ΕΝΗΜΕΡΩΣΗ")
+    #=========================================
+    #Clear Combobox Selection
+    #=========================================
+    def clear_cb(self):
+        self.cat_list.set('')
+        self.cat_list.select_clear()
+        self.new_category.delete(0,'end')
+        self.edit_btn.config(text="ΠΡΟΣΘΗΚΗ")
+
+    #=========================================
+    #Reset Content on Page Change
+    #=========================================
+    def reset(self):
+        self.new_category.delete(0,'end')
+        self.edit_btn.config(text="ΠΡΟΣΘΗΚΗ")
+        self.clear_cb()
+
+
+# Dummy categories
+categoriesdata = [
+    "Μυθιστόρημα",
+    "Φαντασία",
+    "Αστυνομικό",
+    "Δράμα",
+    "Περιπέτεια",
+    "Παιδικό",
+]

@@ -1,6 +1,6 @@
-#import GUI package
+# ─── imports ─────────────────────────
 import tkinter as tk
-from Styles import *
+from gui.Styles import *
 
 class SideBar_Menu(tk.Frame):
     def __init__(self,parent, page_select):
@@ -15,7 +15,7 @@ class SideBar_Menu(tk.Frame):
         self.grid_columnconfigure(0, weight=1)
 
         #sidebar user label
-        self.sidebar_bg_image = tk.PhotoImage(file= 'menu_bg_image.png')
+        self.sidebar_bg_image = tk.PhotoImage(file= 'gui/Assets/menu_bg_image.png')
         self.sidebar_lbl = tk.Label(
                             self.frame,
                             anchor = "center",
@@ -54,7 +54,9 @@ class SideBar_Menu(tk.Frame):
         for i, text in enumerate(menu_buttons):
            self.create_menu_button(text)
 
-    #create sidebar_menu_buttons function
+    #=========================================
+    #Menu Buttons function
+    #=========================================
     def create_menu_button(self,text):
         
         menu_btn = tk.Button(
@@ -85,17 +87,23 @@ class SideBar_Menu(tk.Frame):
 
         return menu_btn
     
-    #change colour on hover
+    #=========================================
+    #Button Hover Colour function
+    #=========================================
     def on_hover(self,btn):
         if btn != self.active_menu_btn:
             btn.config(bg=BG_BLACK_ACCENT,fg=ACCENT)
 
-    #revert colour on hover exit 
+    #=========================================
+    #Revert Colour on Hover Exit function
+    #=========================================
     def on_leave(self,btn):
         if btn != self.active_menu_btn:
             btn.config(bg=BG_DARK,fg=FG_LIGHT)
     
-    #change colour on btn click
+    #=========================================
+    #Button Colour Change on Click function
+    #=========================================
     def on_click(self,btn):
         #reset previous active btn
         if self.active_menu_btn is not None:

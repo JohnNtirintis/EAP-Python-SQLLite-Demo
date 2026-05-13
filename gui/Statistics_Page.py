@@ -20,9 +20,9 @@ matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-from app.dto import DateRangeDTO
+from gui.dto import DateRangeDTO
 
-from gui.styles import (
+from gui.Styles import (
     BG_MAIN, BG_CARD, BG_DARK, BG_DARKER,
     ACCENT, FG_LIGHT, FG_DARK, FG_MUTED,
     FONT_MAIN, FONT_BOLD, FONT_SMALL,
@@ -50,7 +50,7 @@ DATE_MIN  = "2000-01-01"   # default "from" for Section 5 (all-time)
 class Statistics(tk.Frame):
     """Statistics page with 5 scrollable sections."""
 
-    def __init__(self, parent, controller, service):
+    def __init__(self, parent, controller, service=None):
         super().__init__(parent, bg=BG_MAIN)
         self.controller = controller
         self.service    = service
@@ -782,3 +782,7 @@ class Statistics(tk.Frame):
                 "Μορφή ημερομηνίας",
                 "Χρησιμοποιήστε τη μορφή ΕΕΕΕ-ΜΜ-ΗΗ (π.χ. 2026-01-01).")
             return False
+        
+                #clear changes
+    def reset(self):
+        pass

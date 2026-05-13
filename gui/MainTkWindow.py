@@ -1,25 +1,30 @@
-#import GUI package
+# ─── imports ─────────────────────────
 import tkinter as tk
 from tkinter import ttk
-from Styles import *
-from SideBar_Menu import *
-from Dashboard_Page import Dashboard
-from Books_Page import Books
-from Statistics_Page import Statistics
-from Loans_Page import Loans
-from Members_Page import Members
-from Recommend_Page import Recommend
+from gui.Styles import *
+from gui.SideBar_Menu import *
+from gui.Dashboard_Page import Dashboard
+from gui.Books_Page import Books
+from gui.Statistics_Page import Statistics
+from gui.Loans_Page import Loans
+from gui.Members_Page import Members
+from gui.Recommend_Page import Recommend
+from gui.Rating_Page import Rating
+from gui.Categories_Page import Categories
+from gui.Book_Edit_Page import BookEdit
 
 
 class MainWindowGUI(tk.Tk):
 
-    #create main window
+    #=========================================
+    #Main window
+    #=========================================
     def __init__(self):
         super().__init__()
 
         #title & icon config
         self.title("Σύστημα Διαχείρισης Δανειστικής Βιβλιοθήκης")
-        app_image = tk.PhotoImage(file= 'app_icon.png')
+        app_image = tk.PhotoImage(file= 'gui/Assets/app_icon.png')
         self.iconphoto(False, app_image)
 
         #style
@@ -61,12 +66,15 @@ class MainWindowGUI(tk.Tk):
             "Δανεισμός Βιβλίων": Loans,
             "Στατιστικά": Statistics,
             "Μέλη": Members,
-            "Πρόταση Βιβλίου" : Recommend
+            "Πρόταση Βιβλίου" : Recommend,
+            "Βαθμολογία" : Rating,
+            "Κατηγορίες" : Categories,
+            "Επεξεργασία Βιβλίου" : BookEdit,
 
             }
         
         #creates instances for each page and saves in dictionary
-        for P in (Dashboard,Books,Loans,Statistics,Members,Recommend):
+        for P in (Dashboard,Books,Categories,BookEdit,Loans,Rating,Statistics,Members,Recommend):
             page_instance = P(self.main_content_frame, self)
             self.pages[P] = page_instance
             page_instance.grid(row=0,column=0,sticky='nsew')
@@ -77,13 +85,11 @@ class MainWindowGUI(tk.Tk):
         #default starting page
         self.change_page("Αρχική")
 
-    #change page function
+    #=========================================
+    #Change_Page function
+    #=========================================
     def change_page(self, page_name):
         target_page = self.page_map.get(page_name)
         frame = self.pages[target_page]
         frame.reset()
         frame.tkraise()
-
-if __name__ == "__main__":
-    app = MainWindowGUI()
-    app.mainloop()

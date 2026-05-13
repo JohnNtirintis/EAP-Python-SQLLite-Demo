@@ -1,9 +1,9 @@
-#import GUI package
+# ─── imports ─────────────────────────
 import tkinter as tk
 from tkinter import ttk
-from Styles import *
-from Members_Page import Members
-from Dashboard_Page import autosize_content
+from gui.Styles import *
+from gui.Members_Page import Members
+from gui.Dashboard_Page import autosize_content
 
 
 class Recommend(tk.Frame):
@@ -32,7 +32,7 @@ class Recommend(tk.Frame):
         self.recommend_frame.grid_rowconfigure(3, weight=0)
 
         #back button icon
-        self.back_btn_icon = tk.PhotoImage(file= 'back_btn_icon.png')
+        self.back_btn_icon = tk.PhotoImage(file= 'gui/Assets/back_btn_icon.png')
         #back button
         back_btn = tk.Button(
                             self.recommend_frame,
@@ -141,8 +141,9 @@ class Recommend(tk.Frame):
         #call autosizing function
         autosize_content(self.recommend_table)
         
-
-    #clear changes
+    #=========================================
+    #Reset Content on Page Change
+    #=========================================
     def reset(self):
         self.member = self.app.pages[Members].selected_values
         self.title_text.set(f"Για το μέλος {self.member[1]} {self.member[2]} προτείνουμε:")

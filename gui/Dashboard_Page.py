@@ -1,7 +1,7 @@
-#import GUI package
+# ─── imports ─────────────────────────
 import tkinter as tk
 from tkinter import ttk
-from Styles import *
+from gui.Styles import *
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import datetime as datetime
@@ -13,7 +13,7 @@ class Dashboard(tk.Frame):
         super().__init__(parent,bg= BG_MAIN)
         self.app = app
 
-        # make Dashboard expand fully
+        #make Dashboard expand fully
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         
@@ -34,9 +34,9 @@ class Dashboard(tk.Frame):
         self.dashboardData_frame.grid_rowconfigure(2, weight=1,minsize=200)
 
         #images
-        self.books_icon = tk.PhotoImage(file= 'books_icon.png')
-        self.loaned_books_icon = tk.PhotoImage(file= 'loaned_books_icon.png')
-        self.members_icon = tk.PhotoImage(file= 'members_icon.png')
+        self.books_icon = tk.PhotoImage(file= 'gui/Assets/books_icon.png')
+        self.loaned_books_icon = tk.PhotoImage(file= 'gui/Assets/loaned_books_icon.png')
+        self.members_icon = tk.PhotoImage(file= 'gui/Assets/members_icon.png')
         
         #data info list
         dashboard_data_info = [
@@ -53,7 +53,9 @@ class Dashboard(tk.Frame):
         
         self.create_overdue_table()
 
-    #create  dashboard data function
+    #=========================================
+    #Dashboard Data function
+    #=========================================
     def create_dashboard_card(self,col,data):
         
         #container
@@ -104,6 +106,9 @@ class Dashboard(tk.Frame):
                     )
         data_value.grid(row=1, column=1, sticky='e', padx=(0,20), pady=(0,10))
 
+    #=========================================
+    #Overdue Table function
+    #=========================================
     def create_overdue_table(self):
         #container
         container = tk.Frame(
@@ -138,7 +143,8 @@ class Dashboard(tk.Frame):
                         text = "ΕΠΙΣΤΡΟΦΗ",
                         width=18,
                         style="CustomButton.TButton",
-                        cursor= 'hand2'
+                        cursor= 'hand2',
+                        command= lambda: self.app.change_page("Βαθμολογία")
                         )
         self.return_btn.grid(row=0, column=1, sticky='e',padx=(0,15),pady=10)
         self.return_btn.state(['disabled'])
@@ -154,7 +160,6 @@ class Dashboard(tk.Frame):
                             )
         self.overdue_table.grid(row=1, column=0,columnspan=2, sticky='nsew',padx=(15,), pady=(0,5))
         self.overdue_table.bind("<<TreeviewSelect>>", lambda e: self.selection_btn())
-        self.overdue_table.bind("<FocusOut>", lambda e: self.overdue_table.selection_set(()))
 
         #vertical scrollbar
         v_scrollbar = ttk.Scrollbar(
@@ -201,6 +206,9 @@ class Dashboard(tk.Frame):
 
         autosize_content(self.overdue_table)
 
+    #=========================================
+    #Figure function
+    #=========================================
     def create_figure(self):  
         
         #dummy data
@@ -260,6 +268,9 @@ class Dashboard(tk.Frame):
 
         dataframe.plot(kind='line',legend=False, ax=figure_plot, linewidth = 2, linestyle = '-',color= ACCENT)
 
+    #=========================================
+    #Table Selection to Button State function
+    #=========================================
     def selection_btn(self):
         overdue_table = self.overdue_table
 
@@ -270,11 +281,15 @@ class Dashboard(tk.Frame):
         else:
             self.return_btn.state(['!disabled'])
 
-    #clear changes
+    #=========================================
+    #Reset selection function
+    #=========================================
     def reset(self):
         self.overdue_table.selection_set(())
     
-#function to set col width based on text length
+#=========================================
+#Autosize Table Column Width Based On Content function
+#=========================================
 def autosize_content(treeview):
     tree_font = tk.font.Font(font=FONT_BOLD)
             

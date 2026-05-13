@@ -1,8 +1,8 @@
-#import GUI package
+# ─── imports ─────────────────────────
 import tkinter as tk
 from tkinter import ttk, font
-from Styles import *
-from Dashboard_Page import autosize_content
+from gui.Styles import *
+from gui.Dashboard_Page import autosize_content
 from datetime import *
 
 
@@ -59,7 +59,9 @@ class Members(tk.Frame):
         self.create_members_profile()
         self.create_members_table()
 
-    #create members' profile
+    #=========================================
+    #Members' Profile function
+    #=========================================
     def create_members_profile(self):
 
         container = tk.Frame(
@@ -94,7 +96,9 @@ class Members(tk.Frame):
                         )
         title_lbl.grid(row=0,column=0,sticky='w',padx=(15,0),pady=10)
 
-        #create entry label function
+        #=========================================
+        #Entries function
+        #=========================================
         def create_entries(row,col,text):
             entry_lbl = tk.Label(
                     container,
@@ -118,6 +122,9 @@ class Members(tk.Frame):
             
             return entry_box
 
+        # =========================================
+        # Buttons function
+        # =========================================
         def create_buttons(row,text):
             profile_btn = ttk.Button(
                         container,
@@ -162,7 +169,9 @@ class Members(tk.Frame):
                 self.clear_button.config(command= self.reset)
 
 
-    #create members' table
+    #=========================================
+    #Members' Table function
+    #=========================================
     def create_members_table(self):
         #container
         container = tk.Frame(
@@ -277,8 +286,9 @@ class Members(tk.Frame):
         self.members_table.bind("<<TreeviewSelect>>", lambda e: self.selection_to_entry())
         self.selection_to_entry()
 
-
-
+    #=========================================
+    #Table Selection to Entry function
+    #=========================================
     def selection_to_entry(self):
         entries = self.entries
         members_table = self.members_table
@@ -327,13 +337,18 @@ class Members(tk.Frame):
         
         return values
 
-        
+    #=========================================
+    #Clear Entry Text function
+    #=========================================
     def clear_entries(self):
         entries = self.entries
 
         for entry in entries.values():
             entry.delete(0,'end')
-        
+
+    #=========================================
+    #Reset Entries & Selection on Page Change
+    #=========================================    
     def reset(self):
         self.clear_entries()
         self.members_table.selection_set(())
