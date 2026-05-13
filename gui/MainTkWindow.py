@@ -14,13 +14,14 @@ from gui.Categories_Page import Categories
 from gui.Book_Edit_Page import BookEdit
 
 
-class MainWindowGUI(tk.Tk):
+class MainTkWindow(tk.Tk):
 
     #=========================================
     #Main window
     #=========================================
-    def __init__(self):
+    def __init__(self, service):
         super().__init__()
+        self.service = service
 
         #title & icon config
         self.title("Σύστημα Διαχείρισης Δανειστικής Βιβλιοθήκης")
@@ -41,9 +42,12 @@ class MainWindowGUI(tk.Tk):
         self.grid_rowconfigure(0, weight=1)
 
         #make all widgets focusable except buttons
-        self.bind_all("<Button-1>",lambda e: 
-            None if isinstance(e.widget, (tk.Button, ttk.Button)) else e.widget.focus_set()
-            )
+        self.bind_all(
+            "<Button-1>",
+            lambda e: None
+            if isinstance(e.widget, (tk.Button, ttk.Button))
+            else e.widget.focus_set() if hasattr(e.widget, "focus_set") else None,
+        )
 
         #create main content frame
         self.main_content_frame = tk.Frame(self, bg=BG_MAIN)
@@ -74,8 +78,11 @@ class MainWindowGUI(tk.Tk):
             }
         
         #creates instances for each page and saves in dictionary
-        for P in (Dashboard,Books,Categories,BookEdit,Loans,Rating,Statistics,Members,Recommend):
-            page_instance = P(self.main_content_frame, self)
+        for P in (Dashboard, Books, Categories, BookEdit, Loans, Rating, Statistics, Members, Recommend):
+            if P in (Statistics, Categories, Books): # TODO: We might need to pass more files here. Unsure, needs testing - John
+                page_instance = P(self.main_content_frame, self, service=self.service)
+            else:
+                page_instance = P(self.main_content_frame, self)
             self.pages[P] = page_instance
             page_instance.grid(row=0,column=0,sticky='nsew')
 

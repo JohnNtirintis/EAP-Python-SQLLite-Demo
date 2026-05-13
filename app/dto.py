@@ -30,10 +30,16 @@ They ensure:
   3. Clear contracts between layers
 """
 
-
 from dataclasses import dataclass
 from typing import Optional
 
+
+from dataclasses import dataclass
+
+@dataclass
+class DateRangeDTO:
+    date_from: str
+    date_to: str
 
 # ---------------------------------------------------------
 # MEMBERS

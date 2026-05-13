@@ -20,7 +20,7 @@ matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-from gui.dto import DateRangeDTO
+from app.dto import DateRangeDTO
 
 from gui.Styles import (
     BG_MAIN, BG_CARD, BG_DARK, BG_DARKER,
@@ -188,7 +188,15 @@ class Statistics(tk.Frame):
             messagebox.showwarning("Επιλογή", "Παρακαλώ επιλέξτε μέλος.")
             return
 
-        member_id  = self._s1_member_map[sel]
+        member_id = self._s1_member_map.get(sel)
+        if not member_id:
+            self._s1_refresh_members(self._s1_sv.get().strip())
+            sel = self._s1_combo.get()
+            member_id = self._s1_member_map.get(sel)
+        if not member_id:
+            messagebox.showwarning("Επιλογή", "Παρακαλώ επιλέξτε έγκυρο μέλος.")
+            return
+
         date_range = DateRangeDTO(date_from=d_from, date_to=d_to)
         self._clear(self._s1_result)
 
@@ -287,7 +295,15 @@ class Statistics(tk.Frame):
             messagebox.showwarning("Επιλογή", "Παρακαλώ επιλέξτε μέλος.")
             return
 
-        member_id  = self._s2_member_map[sel]
+        member_id = self._s2_member_map.get(sel)
+        if not member_id:
+            self._s2_refresh_members(self._s2_sv.get().strip())
+            sel = self._s2_combo.get()
+            member_id = self._s2_member_map.get(sel)
+        if not member_id:
+            messagebox.showwarning("Επιλογή", "Παρακαλώ επιλέξτε έγκυρο μέλος.")
+            return
+
         date_range = DateRangeDTO(date_from=d_from, date_to=d_to)
         self._clear(self._s2_result)
 
@@ -405,7 +421,14 @@ class Statistics(tk.Frame):
         sel = self._s4_combo.get()
         if not sel:
             return
-        member_id = self._s4_member_map[sel]
+        member_id = self._s4_member_map.get(sel)
+        if not member_id:
+            self._s4_refresh_members(self._s4_sv.get().strip())
+            sel = self._s4_combo.get()
+            member_id = self._s4_member_map.get(sel)
+        if not member_id:
+            messagebox.showwarning("Επιλογή", "Παρακαλώ επιλέξτε έγκυρο μέλος.")
+            return
         self._clear(self._s4_result)
 
         # Member profile card

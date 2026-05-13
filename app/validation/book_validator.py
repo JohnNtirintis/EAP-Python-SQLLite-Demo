@@ -7,7 +7,6 @@ from app.validation.rules import (
     is_non_empty,
     is_valid_isbn,
     is_positive_integer,
-    is_non_negative_integer,
 )
 
 
@@ -34,15 +33,6 @@ def validate_new_book(dto) -> None:
     if not is_positive_integer(dto.total_copies):
         raise BookValidationError("Total copies must be a positive integer.")
 
-    if not is_non_negative_integer(dto.available_copies):
-        raise BookValidationError("Available copies must be a non-negative integer.")
-
-    if int(dto.available_copies) > int(dto.total_copies):
-        raise BookValidationError(
-            "Available copies cannot exceed total copies."
-        )
-
-    # published_year is optional but validated if provided
     if dto.published_year is not None:
         try:
             year = int(dto.published_year)
@@ -57,38 +47,22 @@ def validate_new_book(dto) -> None:
 def validate_update_book(dto) -> None:
     """
     Validates fields for updating an existing book.
-    Only the id is strictly required; all other fields are optional but validated if present.
     Raises BookValidationError if any provided field is invalid.
     dto: BookDTO
     """
-    if not dto.id:
-        raise BookValidationError("Book ID is required for updates.")
-
-    if dto.title is not None and not is_non_empty(dto.title):
+    if not is_non_empty(dto.title):
         raise BookValidationError("Book title cannot be blank.")
 
-    if dto.author is not None and not is_non_empty(dto.author):
+    if not is_non_empty(dto.author):
         raise BookValidationError("Author name cannot be blank.")
 
-    if dto.isbn is not None and not is_valid_isbn(dto.isbn):
+    if not is_valid_isbn(dto.isbn):
         raise BookValidationError(
             f"Invalid ISBN '{dto.isbn}'. Must be 10-17 characters."
         )
 
-    if dto.total_copies is not None and not is_positive_integer(dto.total_copies):
+    if not is_positive_integer(dto.total_copies):
         raise BookValidationError("Total copies must be a positive integer.")
-
-    if dto.available_copies is not None:
-        if not is_non_negative_integer(dto.available_copies):
-            raise BookValidationError(
-                "Available copies must be a non-negative integer."
-            )
-        # Only cross-check if total_copies is also being updated in this call
-        if dto.total_copies is not None:
-            if int(dto.available_copies) > int(dto.total_copies):
-                raise BookValidationError(
-                    "Available copies cannot exceed total copies."
-                )
 
     if dto.published_year is not None:
         try:

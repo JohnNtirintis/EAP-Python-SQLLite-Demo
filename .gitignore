@@ -2,6 +2,7 @@
 .idea/
 .env
 library.db
+project.txt
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template

@@ -7,9 +7,10 @@ from gui.Dashboard_Page import autosize_content
 from gui.Book_Edit_Page import BookEdit
 
 class Books(tk.Frame):
-    def __init__(self, parent, app):
+    def __init__(self, parent, app, service = None):
         super().__init__(parent, bg=BG_MAIN)
         self.app = app
+        self.service = service
 
         #make Books page expand fully
         self.grid_rowconfigure(0, weight=1)
@@ -63,8 +64,10 @@ class Books(tk.Frame):
         self.searchbar_book.bind("<FocusIn>", lambda e: remove_placeholder_var(self.searchbar_book_var))
         self.searchbar_book.bind("<FocusOut>", lambda e: add_placeholder_var(self.searchbar_book_var))
 
+        self.booksdata = self._load_books()
+
         #show filtered results based on query
-        self.searchbar_book.bind("<Return>", lambda e: search_results(booksdata,self.searchbar_book_var,
+        self.searchbar_book.bind("<Return>", lambda e: search_results(self.booksdata,self.searchbar_book_var,
                                                                     self.books_table))
         
         #add category button
@@ -225,13 +228,18 @@ class Books(tk.Frame):
         for w in self.checkboxes_container.winfo_children():
             w.destroy()
 
-        self.cats = categoriesdata
+        self.cats = self.service.list_categories() if self.service else []
         #keep checked boxes
         old  = {k: v.get() for k, v in self.cat_vars.items()}
         self.cat_vars = {}
 
         for c in self.cats:
-            name = c["name"]
+            if isinstance(c, dict):
+                name = c.get("name")
+            else:
+                name = getattr(c, "name", None)
+            if not name:
+                continue
             var  = tk.BooleanVar(value=old.get(name, False))
             self.cat_vars[name] = var
             checkbox = ttk.Checkbutton(
@@ -304,7 +312,7 @@ class Books(tk.Frame):
                                 minwidth=150 if col != "ID" else 80,
                                 stretch=True if col != "ID" else False)
 
-        self.populate_data(booksdata)
+        self.populate_data(self.booksdata)
 
     #=========================================
     #Populate Data function
@@ -384,50 +392,28 @@ class Books(tk.Frame):
     def reset(self):
         self.books_table.selection_set(())
         self.searchbar_book_var.set("Αναζήτηση...")
-    
-# Dummy categories
-categoriesdata = [
-    {"id": 1, "name": "Μυθιστόρημα"},
-    {"id": 2, "name": "Φαντασία"},
-    {"id": 3, "name": "Αστυνομικό"},
-    {"id": 4, "name": "Δράμα"},
-    {"id": 5, "name": "Περιπέτεια"},
-    {"id": 6, "name": "Παιδικό"},
-]
+        self.booksdata = self._load_books()
+        self.populate_data(self.booksdata)
 
-# Dummy books
-booksdata = [
-    {
-        "id": 1,
-        "title": "Η Σιωπηλή Λίμνη",
-        "author": "Μαρία Παπαδοπούλου",
-        "published_year": 2004,
-        "isbn": "9789604532011",
-        "category_name": "Μυθιστόρημα",
-        "total_copies": 5,
-        "available_copies": 2,
-        "avg_rating": 4.2,
-    },
-    {
-        "id": 2,
-        "title": "Τα Μονοπάτια του Χρόνου",
-        "author": "Αντώνης Καραλής",
-        "published_year": 2018,
-        "isbn": "9786180305520",
-        "category_name": "Φαντασία",
-        "total_copies": 4,
-        "available_copies": 1,
-        "avg_rating": 4.5,
-    },
-    {
-        "id": 3,
-        "title": "Ο Χαμένος Φάκελος",
-        "author": "Ελένη Μαρτίνου",
-        "published_year": 2011,
-        "isbn": "9789601638822",
-        "category_name": "Αστυνομικό",
-        "total_copies": 6,
-        "available_copies": 3,
-        "avg_rating": 4.0,
-    },
-]
+    def _books_to_dicts(self, books):
+        normalized = []
+        for b in books or []:
+            if isinstance(b, dict):
+                normalized.append(b)
+            else:
+                normalized.append({
+                    "id": getattr(b, "id", None),
+                    "title": getattr(b, "title", ""),
+                    "author": getattr(b, "author", ""),
+                    "published_year": getattr(b, "published_year", None),
+                    "isbn": getattr(b, "isbn", ""),
+                    "category_name": getattr(b, "category_name", ""),
+                    "available_copies": getattr(b, "available_copies", 0),
+                    "total_copies": getattr(b, "total_copies", 0),
+                })
+        return normalized
+
+    def _load_books(self):
+        if not self.service:
+            return []
+        return self._books_to_dicts(self.service.list_books())

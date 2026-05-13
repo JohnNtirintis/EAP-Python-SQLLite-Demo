@@ -1,3 +1,5 @@
+from dataclasses import asdict, is_dataclass
+
 from .dto import (
     CreateCategoryDTO, CategoryResponseDTO,
     CreateBookDTO, UpdateBookDTO, BookResponseDTO,
@@ -5,27 +7,40 @@ from .dto import (
     CreateLoanDTO, ReturnLoanDTO, LoanResponseDTO
 )
 
-from .validation import MemberValidator
+from .validation import (
+    validate_new_member,
+    validate_update_member,
+    validate_new_book,
+    validate_update_book,
+    validate_new_loan,
+)
 
 
 class BusinessLogic:
     def __init__(self, dal):
         self.dal = dal
-        self.member_validator = MemberValidator()
+
+    def _dto_to_dict(self, obj):
+        if obj is None:
+            return None
+        if is_dataclass(obj):
+            return asdict(obj)
+        return obj
 
     # ---------------------------------------------------------
     # MEMBERS
     # ---------------------------------------------------------
     def list_members(self):
-        return self.dal.list_members()
+        return [self._dto_to_dict(m) for m in self.dal.list_members()]
 
     def add_member(self, **kwargs):
         dto = CreateMemberDTO(**kwargs)
-        self.member_validator.validate_create(dto)
+        validate_new_member(dto)
         return self.dal.add_member(dto)
 
     def update_member(self, member_id, **kwargs):
         dto = UpdateMemberDTO(**kwargs)
+        validate_update_member(dto)
         return self.dal.update_member(member_id, dto)
 
     def delete_member(self, member_id):
@@ -38,7 +53,19 @@ class BusinessLogic:
         return self.dal.renew_membership(member_id)
 
     def get_member(self, member_id):
-        return self.dal.get_member(member_id)
+        return self._dto_to_dict(self.dal.get_member(member_id))
+
+    def search_members(self, term):
+        term = (term or "").strip().lower()
+        if not term:
+            return self.list_members()
+        members = self.list_members()
+        return [
+            m for m in members
+            if term in (m.get("full_name", "").lower())
+            or term in (m.get("registration_number", "").lower())
+            or term in (m.get("email", "").lower())
+        ]
 
     # ---------------------------------------------------------
     # CATEGORIES
@@ -58,6 +85,7 @@ class BusinessLogic:
     # ---------------------------------------------------------
     def add_book(self, **kwargs):
         dto = CreateBookDTO(**kwargs)
+        validate_new_book(dto)
         return self.dal.add_book(dto)
 
     def list_books(self):
@@ -74,6 +102,7 @@ class BusinessLogic:
 
     def update_book(self, book_id, **kwargs):
         dto = UpdateBookDTO(**kwargs)
+        validate_update_book(dto)
         return self.dal.update_book(book_id, dto)
 
     def delete_book(self, book_id):
@@ -84,6 +113,7 @@ class BusinessLogic:
     # ---------------------------------------------------------
     def borrow_book(self, member_id, book_id):
         dto = CreateLoanDTO(member_id=member_id, book_id=book_id)
+        validate_new_loan(dto)
         return self.dal.borrow_book(dto)
 
     def return_book(self, loan_id, rating=None):
@@ -135,4 +165,30 @@ class BusinessLogic:
 
     def loans_per_gender(self):
         return self.dal.loans_per_gender()
+
+    # GUI-facing helpers (Statistics page)
+    def get_daily_loan_summary(self, member_id, date_range):
+        return self.dal.daily_loan_summary(member_id, date_range.date_from, date_range.date_to)
+
+    def get_member_category_stats(self, member_id, date_range):
+        rows = self.dal.member_category_distribution_in_period(
+            member_id, date_range.date_from, date_range.date_to
+        )
+        return [{"category": r[0], "total": r[1]} for r in rows]
+
+    def get_all_category_stats(self, date_range):
+        rows = self.dal.category_distribution_in_period(date_range.date_from, date_range.date_to)
+        return [{"category": r[0], "total": r[1]} for r in rows]
+
+    def get_member_loan_history(self, member_id):
+        return self.dal.member_loan_history_detailed(member_id)
+
+    def get_loans_per_author(self, date_range):
+        return self.dal.loans_per_author_in_period(date_range.date_from, date_range.date_to)
+
+    def get_loans_per_age_group(self, date_range):
+        return self.dal.loans_per_age_group_in_period(date_range.date_from, date_range.date_to)
+
+    def get_loans_per_gender(self, date_range):
+        return self.dal.loans_per_gender_in_period(date_range.date_from, date_range.date_to)
 

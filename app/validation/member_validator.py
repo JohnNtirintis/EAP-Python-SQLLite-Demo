@@ -9,7 +9,6 @@ from app.validation.rules import (
     is_valid_phone,
     is_valid_age,
     is_valid_gender,
-    is_valid_status,
 )
 
 
@@ -39,22 +38,13 @@ def validate_new_member(dto) -> None:
             f"Invalid gender '{dto.gender}'. Must be 'Male', 'Female', 'Other', or None."
         )
 
-    if not is_valid_status(dto.status):
-        raise MemberValidationError(
-            f"Invalid status '{dto.status}'. Must be 'active' or 'inactive'."
-        )
-
 
 def validate_update_member(dto) -> None:
     """
     Validates fields for updating an existing member.
-    Only the id is strictly required; all other fields are optional but validated if present.
     Raises MemberValidationError if any provided field is invalid.
     dto: MemberDTO
     """
-    if not dto.id:
-        raise MemberValidationError("Member ID is required for updates.")
-
     if dto.full_name is not None and not is_non_empty(dto.full_name):
         raise MemberValidationError("Full name cannot be blank.")
 
@@ -70,9 +60,4 @@ def validate_update_member(dto) -> None:
     if dto.gender is not None and not is_valid_gender(dto.gender):
         raise MemberValidationError(
             f"Invalid gender '{dto.gender}'. Must be 'Male', 'Female', 'Other', or None."
-        )
-
-    if dto.status is not None and not is_valid_status(dto.status):
-        raise MemberValidationError(
-            f"Invalid status '{dto.status}'. Must be 'active' or 'inactive'."
         )

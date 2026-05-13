@@ -5,9 +5,10 @@ from gui.Styles import *
 
 
 class Categories(tk.Frame):
-    def __init__(self, parent,app):
+    def __init__(self, parent,app, service = None):
         super().__init__(parent, bg=BG_MAIN)
         self.app   = app
+        self.service = service
 
         #make Categories expand fully
         self.grid_rowconfigure(0, weight=1)
@@ -120,11 +121,12 @@ class Categories(tk.Frame):
                         state="readonly",
                         font=FONT_MAIN,
                         width=40,
-                        values=categoriesdata,
+                        values=[],
                         style="CustomCombobox.TCombobox"
                         )
         self.cat_list.grid(row=1, column=0, sticky="w", padx=15, pady=5)
         self.cat_list.bind("<<ComboboxSelected>>",lambda e: self.selection_to_entry())
+        self._load_categories()
 
         #buttons
         self.edit_btn = ttk.Button(
@@ -188,14 +190,24 @@ class Categories(tk.Frame):
         self.new_category.delete(0,'end')
         self.edit_btn.config(text="ΠΡΟΣΘΗΚΗ")
         self.clear_cb()
+        self._load_categories()
 
+    def _category_labels(self, categories):
+        labels = []
+        for c in categories or []:
+            if isinstance(c, dict):
+                name = c.get("name")
+            else:
+                name = getattr(c, "name", None)
+            if name:
+                labels.append(name)
+        return labels
 
-# Dummy categories
-categoriesdata = [
-    "Μυθιστόρημα",
-    "Φαντασία",
-    "Αστυνομικό",
-    "Δράμα",
-    "Περιπέτεια",
-    "Παιδικό",
-]
+    def _load_categories(self):
+        if not self.service:
+            self.cat_list["values"] = []
+            return
+        labels = self._category_labels(self.service.list_categories())
+        self.cat_list["values"] = labels
+        if labels:
+            self.cat_list.current(0)

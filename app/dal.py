@@ -556,6 +556,31 @@ class LibraryDAL:
         row = self.db.query_one(sql, (member_id, start_date, end_date))
         return row["total"] if row else 0
 
+    def daily_loan_summary(self, member_id, start_date, end_date):
+        """
+        Daily summary for a member (loan count + titles) in a date range.
+        """
+        sql = """
+            SELECT l.loan_date AS loan_date,
+                   COUNT(*) AS total_books,
+                   GROUP_CONCAT(b.title, ', ') AS titles
+            FROM loans l
+            JOIN books b ON b.id = l.book_id
+            WHERE l.member_id = ?
+              AND l.loan_date BETWEEN ? AND ?
+            GROUP BY l.loan_date
+            ORDER BY l.loan_date;
+        """
+        rows = self.db.query_all(sql, (member_id, start_date, end_date))
+        return [
+            {
+                "loan_date": r["loan_date"],
+                "total_books": r["total_books"],
+                "titles": r["titles"] or "",
+            }
+            for r in rows
+        ]
+
     def member_category_distribution_in_period(self, member_id, start_date, end_date):
         """
         Κατανομή προτιμήσεων δανεισμού ανά μέλος ανά κατηγορία.
@@ -603,6 +628,38 @@ class LibraryDAL:
         rows = self.db.query_all(sql, (member_id,))
         return [(r["title"], r["loan_date"], r["return_date"]) for r in rows]
 
+    def member_loan_history_detailed(self, member_id):
+        """
+        Detailed loan history for a member.
+        """
+        sql = """
+            SELECT b.title AS book_title,
+                   b.author AS book_author,
+                   c.name AS category,
+                   l.loan_date,
+                   l.due_date,
+                   l.return_date,
+                   l.status
+            FROM loans l
+            JOIN books b ON l.book_id = b.id
+            JOIN categories c ON b.category_id = c.id
+            WHERE l.member_id = ?
+            ORDER BY l.loan_date DESC;
+        """
+        rows = self.db.query_all(sql, (member_id,))
+        return [
+            {
+                "book_title": r["book_title"],
+                "book_author": r["book_author"],
+                "category": r["category"],
+                "loan_date": r["loan_date"],
+                "due_date": r["due_date"],
+                "return_date": r["return_date"],
+                "status": r["status"],
+            }
+            for r in rows
+        ]
+
     def loans_per_author(self):
         """
         Πλήθος δανεισμών ανά συγγραφέα.
@@ -616,6 +673,18 @@ class LibraryDAL:
         """
         rows = self.db.query_all(sql)
         return [(r["author"], r["total"]) for r in rows]
+
+    def loans_per_author_in_period(self, start_date, end_date):
+        sql = """
+            SELECT b.author AS author, COUNT(*) AS total
+            FROM loans l
+            JOIN books b ON l.book_id = b.id
+            WHERE l.loan_date BETWEEN ? AND ?
+            GROUP BY b.author
+            ORDER BY total DESC
+        """
+        rows = self.db.query_all(sql, (start_date, end_date))
+        return [{"author": r["author"], "total": r["total"]} for r in rows]
 
     def loans_per_age(self):
         """
@@ -631,6 +700,28 @@ class LibraryDAL:
         rows = self.db.query_all(sql)
         return [(r["age"], r["total"]) for r in rows]
 
+    def loans_per_age_group_in_period(self, start_date, end_date):
+        sql = """
+            SELECT
+                CASE
+                    WHEN m.age IS NULL THEN 'Unknown'
+                    WHEN m.age < 13 THEN '0-12'
+                    WHEN m.age BETWEEN 13 AND 17 THEN '13-17'
+                    WHEN m.age BETWEEN 18 AND 25 THEN '18-25'
+                    WHEN m.age BETWEEN 26 AND 35 THEN '26-35'
+                    WHEN m.age BETWEEN 36 AND 50 THEN '36-50'
+                    ELSE '51+'
+                END AS age_group,
+                COUNT(*) AS total
+            FROM loans l
+            JOIN members m ON l.member_id = m.id
+            WHERE l.loan_date BETWEEN ? AND ?
+            GROUP BY age_group
+            ORDER BY age_group;
+        """
+        rows = self.db.query_all(sql, (start_date, end_date))
+        return [{"age_group": r["age_group"], "total": r["total"]} for r in rows]
+
     def loans_per_gender(self):
         """
         Πλήθος δανεισμών ανά φύλο.
@@ -643,6 +734,17 @@ class LibraryDAL:
         """
         rows = self.db.query_all(sql)
         return [(r["gender"], r["total"]) for r in rows]
+
+    def loans_per_gender_in_period(self, start_date, end_date):
+        sql = """
+            SELECT m.gender AS gender, COUNT(*) AS total
+            FROM loans l
+            JOIN members m ON l.member_id = m.id
+            WHERE l.loan_date BETWEEN ? AND ?
+            GROUP BY m.gender
+        """
+        rows = self.db.query_all(sql, (start_date, end_date))
+        return [{"gender": r["gender"], "total": r["total"]} for r in rows]
 
     # ---------------------------------------------------------
     # RECOMMENDATIONS
