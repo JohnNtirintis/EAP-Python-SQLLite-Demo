@@ -78,11 +78,9 @@ class MainTkWindow(tk.Tk):
             }
         
         #creates instances for each page and saves in dictionary
+        #every page now receives the BusinessLogic instance as `service`
         for P in (Dashboard, Books, Categories, BookEdit, Loans, Rating, Statistics, Members, Recommend):
-            if P in (Statistics, Categories, Books): # TODO: We might need to pass more files here. Unsure, needs testing - John
-                page_instance = P(self.main_content_frame, self, service=self.service)
-            else:
-                page_instance = P(self.main_content_frame, self)
+            page_instance = P(self.main_content_frame, self, service=self.service)
             self.pages[P] = page_instance
             page_instance.grid(row=0,column=0,sticky='nsew')
 
@@ -98,5 +96,7 @@ class MainTkWindow(tk.Tk):
     def change_page(self, page_name):
         target_page = self.page_map.get(page_name)
         frame = self.pages[target_page]
-        frame.reset()
+        #pages whose reset() reloads data from the service get a free refresh on navigation
+        if hasattr(frame, "reset"):
+            frame.reset()
         frame.tkraise()

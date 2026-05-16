@@ -808,4 +808,9 @@ class Statistics(tk.Frame):
         
                 #clear changes
     def reset(self):
-        pass
+        """Called when the page becomes visible. Refresh member combos
+        so newly added/removed members appear in the dropdowns."""
+        try:
+            self.on_show()
+        except Exception:
+            pass

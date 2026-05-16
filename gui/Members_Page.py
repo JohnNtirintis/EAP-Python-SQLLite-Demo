@@ -1,47 +1,61 @@
 # ─── imports ─────────────────────────
 import tkinter as tk
-from tkinter import ttk, font
+from tkinter import ttk, font, messagebox
+from datetime import datetime, date
+
 from gui.Styles import *
 from gui.Dashboard_Page import autosize_content
-from datetime import *
+
+
+# Display labels used in the Φύλο combobox <-> the DB values understood by the schema.
+GENDER_DISPLAY_TO_DB = {
+    "Άνδρας":  "Male",
+    "Γυναίκα": "Female",
+    "Άλλο":    "Other",
+    "":        None,
+}
+GENDER_DB_TO_DISPLAY = {v: k for k, v in GENDER_DISPLAY_TO_DB.items() if v is not None}
 
 
 class Members(tk.Frame):
-    def __init__(self,parent,app):
-        super().__init__(parent,bg=BG_MAIN)
+    def __init__(self, parent, app, service=None):
+        super().__init__(parent, bg=BG_MAIN)
         self.app = app
+        self.service = service
+
+        #currently selected member id (or None). Exposed for Recommend page.
+        self.selected_member_id = None
 
         #make Members expand fully
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        
 
         #frame creation and grid config
         self.member_frame = tk.Frame(
                             self,
-                            bg = BG_MAIN,
+                            bg=BG_MAIN,
                             padx=30,
                             pady=20
                             )
-        self.member_frame.grid(row=0,column=0, sticky='nswe')
+        self.member_frame.grid(row=0, column=0, sticky='nswe')
 
         self.member_frame.grid_columnconfigure(0, weight=1)
         self.member_frame.grid_rowconfigure(0, weight=0)
-        self.member_frame.grid_rowconfigure(1, weight=1,minsize=200)
+        self.member_frame.grid_rowconfigure(1, weight=1, minsize=200)
         self.member_frame.grid_rowconfigure(2, weight=0)
-        self.member_frame.grid_rowconfigure(3, weight=1,minsize=200)
+        self.member_frame.grid_rowconfigure(3, weight=1, minsize=200)
 
-        #profile title 
+        #profile title
         profile_label = tk.Label(
                             self.member_frame,
                             anchor='w',
                             text='Μέλη',
                             bd=0,
-                            bg= BG_MAIN,
-                            fg= FG_MUTED,
-                            font= FONT_TITLE
+                            bg=BG_MAIN,
+                            fg=FG_MUTED,
+                            font=FONT_TITLE
                             )
-        profile_label.grid(row=0,column=0,padx=15, pady=(5,10), sticky='nsew')
+        profile_label.grid(row=0, column=0, padx=15, pady=(5, 10), sticky='nsew')
 
         #table title
         table_title = tk.Label(
@@ -49,35 +63,32 @@ class Members(tk.Frame):
                             anchor='w',
                             text='Λίστα Μελών',
                             bd=0,
-                            bg= BG_MAIN,
-                            fg= FG_MUTED,
-                            font= FONT_TITLE
+                            bg=BG_MAIN,
+                            fg=FG_MUTED,
+                            font=FONT_TITLE
                             )
-        table_title.grid(row=2,column=0,padx=15, pady=(5,10), sticky='nsew')
-        
+        table_title.grid(row=2, column=0, padx=15, pady=(5, 10), sticky='nsew')
+
         self.entries = {}
         self.create_members_profile()
         self.create_members_table()
+        self.refresh_members_table()
 
-    #=========================================
-    #Members' Profile function
-    #=========================================
+    # =========================================
+    # Members' Profile function
+    # =========================================
     def create_members_profile(self):
-
         container = tk.Frame(
                     self.member_frame,
                     bd=0,
-                    bg= BG_CARD,
+                    bg=BG_CARD,
                     padx=10,
                     pady=10
                     )
         container.grid(row=1, column=0, padx=15, pady=10, sticky='nsew')
         container.grid_propagate(False)
-        container.grid_rowconfigure(0, weight=0)
-        container.grid_rowconfigure(1, weight=1)
-        container.grid_rowconfigure(2, weight=1)
-        container.grid_rowconfigure(3, weight=1)
-        container.grid_rowconfigure(4, weight=1)
+        for r in range(5):
+            container.grid_rowconfigure(r, weight=1 if r > 0 else 0)
         container.grid_columnconfigure(0, weight=0)
         container.grid_columnconfigure(1, weight=1)
         container.grid_columnconfigure(2, weight=0)
@@ -87,97 +98,105 @@ class Members(tk.Frame):
         #title
         title_lbl = tk.Label(
                         container,
-                        anchor = "center",
+                        anchor="center",
                         bg=BG_CARD,
                         fg=FG_MUTED,
                         bd=0,
-                        font = FONT_SUBHEADER_BOLD,
-                        text = "Προφίλ μέλους:"
+                        font=FONT_SUBHEADER_BOLD,
+                        text="Προφίλ μέλους:"
                         )
-        title_lbl.grid(row=0,column=0,sticky='w',padx=(15,0),pady=10)
+        title_lbl.grid(row=0, column=0, sticky='w', padx=(15, 0), pady=10)
 
-        #=========================================
-        #Entries function
-        #=========================================
-        def create_entries(row,col,text):
-            entry_lbl = tk.Label(
+        #---- helpers ----
+        def create_entry(row, col, label_text):
+            lbl = tk.Label(
                     container,
-                    anchor = "ne",
-                    text= text,
-                    bd = 0,
-                    bg = BG_CARD,
-                    fg= FG_MUTED,
-                    font= FONT_BOLD
+                    anchor="ne",
+                    text=label_text,
+                    bd=0,
+                    bg=BG_CARD,
+                    fg=FG_MUTED,
+                    font=FONT_BOLD,
                     )
-            entry_lbl.grid(row=row, column=col*2, sticky='w',padx=(15,0),pady=5)
-
-            entry_box = ttk.Entry(
+            lbl.grid(row=row, column=col * 2, sticky='w', padx=(15, 0), pady=5)
+            entry = ttk.Entry(
                     container,
-                    font = FONT_MAIN,
+                    font=FONT_MAIN,
                     style="CustomEntry.TEntry",
                     exportselection=False,
-                    validate='focusout'
                     )
-            entry_box.grid(row=row, column=col*2+1, sticky='ew',padx=5,pady=5)
-            
-            return entry_box
+            entry.grid(row=row, column=col * 2 + 1, sticky='ew', padx=5, pady=5)
+            return entry
 
-        # =========================================
-        # Buttons function
-        # =========================================
-        def create_buttons(row,text):
-            profile_btn = ttk.Button(
+        def create_combo(row, col, label_text, values):
+            lbl = tk.Label(
+                    container,
+                    anchor="ne",
+                    text=label_text,
+                    bd=0,
+                    bg=BG_CARD,
+                    fg=FG_MUTED,
+                    font=FONT_BOLD,
+                    )
+            lbl.grid(row=row, column=col * 2, sticky='w', padx=(15, 0), pady=5)
+            combo = ttk.Combobox(
+                    container,
+                    state="readonly",
+                    font=FONT_MAIN,
+                    values=values,
+                    style="CustomCombobox.TCombobox",
+                    )
+            combo.grid(row=row, column=col * 2 + 1, sticky='ew', padx=5, pady=5)
+            return combo
+
+        def create_button(row, text):
+            btn = ttk.Button(
                         container,
-                        text = text,
+                        text=text,
                         width=18,
                         style="CustomButton.TButton",
-                        cursor= 'hand2'
+                        cursor='hand2'
                         )
-            profile_btn.grid(row=row+1, column=4, sticky='e',padx=(5,15),pady=5)
-            return profile_btn
+            btn.grid(row=row + 1, column=4, sticky='e', padx=(5, 15), pady=5)
+            return btn
 
+        # Form fields. Column 0 = left, column 1 = right.
+        # Row 1..4 are the entries.
+        self.entries["full_name"] = create_entry(1, 0, "Ονοματεπώνυμο:")
+        self.entries["age"]       = create_entry(2, 0, "Ηλικία:")
+        self.entries["email"]     = create_entry(3, 0, "Email:")
+        self.entries["phone"]     = create_entry(4, 0, "Τηλέφωνο:")
 
-        #entry labels
-        entry_labels = ["Όνομα:","Επώνυμο:","Φύλλο:","Ημ/νία Γέννησης:",
-                        "Email:","Τηλέφωνο:","Διεύθυνση:"]
-        
-        #loop for entry labels with corresponding text
-        for i,text in enumerate(entry_labels):
-            col = i // 4
-            row = i % 4 +1
+        self.entries["address"]            = create_entry(1, 1, "Διεύθυνση:")
+        self.entries["profession"]         = create_entry(2, 1, "Επάγγελμα:")
+        self.entries["registration_number"]= create_entry(3, 1, "Αρ. Μητρώου:")
+        self.gender_combo = create_combo(4, 1, "Φύλο:",
+                                         list(GENDER_DISPLAY_TO_DB.keys()))
 
-            key = text.replace(":","").lower()
-            entry = create_entries(row,col,text)
-            self.entries[key] = entry
+        # Buttons
+        self.save_button = create_button(0, "ΔΗΜΙΟΥΡΓΙΑ")
+        self.save_button.config(command=self.save_member)
 
-        btn_labels = ("ΔΗΜΙΟΥΡΓΙΑ","ΑΝΑΝΕΩΣΗ","ΠΡΟΤΑΣΗ ΒΙΒΛΙΟΥ","ΚΑΘΑΡΙΣΜΟΣ")
+        self.status_button = create_button(1, "ΑΝΑΝΕΩΣΗ")
+        self.status_button.config(command=self.toggle_status)
+        self.status_button.state(['disabled'])
 
-        for row,text in enumerate(btn_labels):
-            btn = create_buttons(row,text)
-            if text == "ΔΗΜΙΟΥΡΓΙΑ":
-                self.save_button = btn
-            elif text == "ΑΝΑΝΕΩΣΗ":
-                self.status_button = btn
-                self.status_button.state(['disabled'])
-            elif text == "ΠΡΟΤΑΣΗ ΒΙΒΛΙΟΥ":
-                self.suggestion_button = btn
-                self.suggestion_button.config(command= lambda: self.app.change_page("Πρόταση Βιβλίου"))
-                self.suggestion_button.state(['disabled'])
-            if text == "ΚΑΘΑΡΙΣΜΟΣ":
-                self.clear_button = btn
-                self.clear_button.state(['disabled'])
-                self.clear_button.config(command= self.reset)
+        self.suggestion_button = create_button(2, "ΠΡΟΤΑΣΗ ΒΙΒΛΙΟΥ")
+        self.suggestion_button.config(command=self.go_to_recommend)
+        self.suggestion_button.state(['disabled'])
 
+        self.clear_button = create_button(3, "ΚΑΘΑΡΙΣΜΟΣ")
+        self.clear_button.config(command=self.reset)
+        self.clear_button.state(['disabled'])
 
-    #=========================================
-    #Members' Table function
-    #=========================================
+    # =========================================
+    # Members' Table function
+    # =========================================
     def create_members_table(self):
-        #container
         container = tk.Frame(
                     self.member_frame,
                     bd=0,
-                    bg= BG_CARD,
+                    bg=BG_CARD,
                     padx=10,
                     pady=10
                     )
@@ -188,10 +207,10 @@ class Members(tk.Frame):
         container.grid_columnconfigure(0, weight=1)
         container.grid_columnconfigure(1, weight=0)
 
-
         #table
-        columns=("ID","Όνομα","Επώνυμο","Φύλλο","Ημ/νία Γέννησης","Email",
-                 "Τηλέφωνο","Διεύθυνση","Ημ/νία Εγγραφής","Λήξη Εγγραφής","Κατάσταση")
+        # Columns reflect what's actually stored in the DB schema.
+        columns = ("ID", "Ονοματεπώνυμο", "Αρ. Μητρώου", "Φύλο", "Ηλικία",
+                   "Email", "Τηλέφωνο", "Διεύθυνση", "Επάγγελμα", "Κατάσταση")
         self.members_table = ttk.Treeview(
                             container,
                             columns=columns,
@@ -199,11 +218,11 @@ class Members(tk.Frame):
                             selectmode='browse',
                             style="Custom.Treeview"
                             )
-        self.members_table.grid(row=0, column=0, sticky='nsew',padx=(0,5),pady=(0,5))
-        
-        #vertical scrollbar
+        self.members_table.grid(row=0, column=0, sticky='nsew', padx=(0, 5), pady=(0, 5))
+
+        #scrollbars
         v_scrollbar = ttk.Scrollbar(
-                        container, 
+                        container,
                         orient='vertical',
                         command=self.members_table.yview,
                         style="Vertical.TScrollbar"
@@ -211,149 +230,263 @@ class Members(tk.Frame):
         v_scrollbar.grid(row=0, column=1, sticky='ns')
         self.members_table.config(yscrollcommand=v_scrollbar.set)
 
-        #horizontal scrollbar
         h_scrollbar = ttk.Scrollbar(
-                        container, 
+                        container,
                         orient='horizontal',
                         command=self.members_table.xview,
                         style="Horizontal.TScrollbar"
                         )
-        h_scrollbar.set(0.2,0.5)
+        h_scrollbar.set(0.2, 0.5)
         h_scrollbar.grid(row=1, column=0, sticky='we')
         self.members_table.config(xscrollcommand=h_scrollbar.set)
 
-
-        #headings & column width & alignment
         for col in columns:
             self.members_table.heading(col, text=col, anchor='w')
-            self.members_table.column(col, 
-                                anchor="w", 
-                                stretch=False,
-                                minwidth=80 if col in ("ID","Φύλλο","Κατάσταση") else 150,
-                                )
+            self.members_table.column(
+                col,
+                anchor="w",
+                stretch=False,
+                minwidth=80 if col in ("ID", "Φύλο", "Ηλικία", "Κατάσταση") else 150,
+                width=100 if col in ("ID", "Φύλο", "Ηλικία", "Κατάσταση") else 180,
+                )
 
+        self.members_table.bind("<<TreeviewSelect>>",
+                                lambda e: self.selection_to_entry())
 
-        #dummy data
-        members = [
-            ("0001", "Γιώργος", "Ανδρέου", "Άνδρας", "14/03/1992",
-            "g.andreou92@example.com", "6945123456", "Αθηνάς 12, Αθήνα",
-            "10/01/2025", "10/01/2026", "Ενεργό"),
+    # =========================================
+    # Load data from service into the table
+    # =========================================
+    def refresh_members_table(self):
+        for item in self.members_table.get_children():
+            self.members_table.delete(item)
 
-            ("0002", "Μαρία", "Παπαδοπούλου", "Γυναίκα", "22/07/1988",
-            "m.papadopoulou88@example.com", "6978456123", "Σόλωνος 45, Αθήνα",
-            "03/11/2024", "03/11/2025", "Ενεργό"),
+        if not self.service:
+            return
 
-            ("0003", "Αντώνης", "Κυριακίδης", "Άνδρας", "05/12/1995",
-            "antonis.kyr@example.com", "6982234511", "Ερμού 78, Πειραιάς",
-            "18/02/2025", "18/02/2026", "Ενεργό"),
+        try:
+            members = self.service.list_members()
+        except Exception as e:
+            messagebox.showerror("Σφάλμα φόρτωσης",
+                                 f"Αδυναμία ανάκτησης μελών: {e}")
+            return
 
-            ("0004", "Ελένη", "Γεωργίου", "Γυναίκα", "30/09/1999",
-            "eleni.geo99@example.com", "6947788991", "Κηφισίας 102, Μαρούσι",
-            "01/03/2025", "01/03/2026", "Ενεργό"),
-
-            ("0005", "Νίκος", "Σταματίου", "Άνδρας", "17/01/1985",
-            "nikos.stam@example.com", "6933344556", "Θησέως 5, Καλλιθέα",
-            "20/05/2024", "20/05/2025", "Ανενεργό"),
-
-            ("0006", "Άννα", "Λαμπροπούλου", "Γυναίκα", "11/04/1993",
-            "anna.lam93@example.com", "6971122334", "Πατησίων 210, Αθήνα",
-            "10/04/2025", "10/04/2026", "Ενεργό"),
-
-            ("0007", "Πέτρος", "Μανιάτης", "Άνδρας", "08/06/1990",
-            "petros.maniatis@example.com", "6956677889", "Αγίου Κωνσταντίνου 9, Πειραιάς",
-            "14/09/2024", "14/09/2025", "Ανενεργό"),
-
-            ("0008", "Σοφία", "Καραμήτρου", "Γυναίκα", "27/02/2000",
-            "sofia.karam@example.com", "6989001122", "Μεσογείων 150, Χολαργός",
-            "25/01/2025", "25/01/2026", "Ενεργό"),
-
-            ("0009", "Χρήστος", "Δημητρίου", "Άνδρας", "19/10/1987",
-            "x.dimitriou87@example.com", "6945566778", "Αχαρνών 33, Αθήνα",
-            "01/12/2024", "01/12/2025", "Ενεργό"),
-
-            ("0010", "Ιωάννα", "Στεργίου", "Γυναίκα", "03/08/1996",
-            "ioanna.sterg@example.com", "6977008899", "Φιλελλήνων 20, Αθήνα",
-            "12/03/2025", "12/03/2026", "Ενεργό")
-            ]
-        
         for m in members:
-            self.members_table.insert("", "end", values=m)
+            gender_display = GENDER_DB_TO_DISPLAY.get(m.get("gender"),
+                                                      m.get("gender") or "")
+            status_display = "Ενεργό" if m.get("status") == "active" else "Ανενεργό"
+            age_display = "" if m.get("age") in (None, "") else str(m.get("age"))
+            self.members_table.insert(
+                "", "end",
+                iid=str(m["id"]),
+                values=(
+                    f"{m['id']:04d}",
+                    m.get("full_name", ""),
+                    m.get("registration_number", ""),
+                    gender_display,
+                    age_display,
+                    m.get("email", "") or "",
+                    m.get("phone", "") or "",
+                    m.get("address", "") or "",
+                    m.get("profession", "") or "",
+                    status_display,
+                ),
+            )
 
-        #call autosizing function
         autosize_content(self.members_table)
 
-        #call selection-to-entry-table function
-        self.members_table.bind("<<TreeviewSelect>>", lambda e: self.selection_to_entry())
-        self.selection_to_entry()
-
-    #=========================================
-    #Table Selection to Entry function
-    #=========================================
+    # =========================================
+    # Selection -> form
+    # =========================================
     def selection_to_entry(self):
-        entries = self.entries
-        members_table = self.members_table
+        selected = self.members_table.selection()
 
-        #get selection items
-        selected = members_table.selection()
-        
         if not selected:
+            self.selected_member_id = None
             self.save_button.config(text="ΔΗΜΙΟΥΡΓΙΑ")
-            self.clear_button.state(['disabled'])
             self.status_button.config(text="ΑΝΑΝΕΩΣΗ")
             self.status_button.state(['disabled'])
             self.suggestion_button.state(['disabled'])
+            self.clear_button.state(['disabled'])
             return
-        
-        #clear entry boxes
+
+        self.selected_member_id = int(selected[0])
+        member = self.service.get_member(self.selected_member_id) if self.service else None
+        if not member:
+            messagebox.showerror("Σφάλμα",
+                                 "Το μέλος δεν βρέθηκε.")
+            return
+
+        # Fill form
         self.clear_entries()
+        self.entries["full_name"].insert(0, member.get("full_name", ""))
+        self.entries["age"].insert(0, "" if member.get("age") is None
+                                        else str(member.get("age")))
+        self.entries["email"].insert(0, member.get("email", "") or "")
+        self.entries["phone"].insert(0, member.get("phone", "") or "")
+        self.entries["address"].insert(0, member.get("address", "") or "")
+        self.entries["profession"].insert(0, member.get("profession", "") or "")
+        self.entries["registration_number"].insert(
+            0, member.get("registration_number", "") or "")
+        self.gender_combo.set(
+            GENDER_DB_TO_DISPLAY.get(member.get("gender"), ""))
 
-        values = members_table.item(selected, 'values')
-        self.selected_values = values
-
-        #change btn text
+        # Buttons
         self.save_button.config(text="ΕΝΗΜΕΡΩΣΗ")
-        if values[10] == "Ενεργό":
-            self.status_button.config(text='ΤΕΡΜΑΤΙΣΜΟΣ')
+        if member.get("status") == "active":
+            self.status_button.config(text="ΤΕΡΜΑΤΙΣΜΟΣ")
         else:
-            self.status_button.config(text='ΑΝΑΝΕΩΣΗ')
-
-        #output to entry boxes
-        mapping = [
-            "όνομα",
-            "επώνυμο",
-            "φύλλο",
-            "ημ/νία γέννησης",
-            "email",
-            "τηλέφωνο",
-            "διεύθυνση"]
-        
-        for i,key in enumerate(mapping, start=1):
-            entries[key].insert(0,values[i])
-
-        #change btn status
-        self.clear_button.state(['!disabled'])
+            self.status_button.config(text="ΑΝΑΝΕΩΣΗ")
         self.status_button.state(['!disabled'])
         self.suggestion_button.state(['!disabled'])
-        
-        return values
+        self.clear_button.state(['!disabled'])
 
-    #=========================================
-    #Clear Entry Text function
-    #=========================================
+    # =========================================
+    # Read form values into a kwargs dict for the service
+    # =========================================
+    def _form_to_kwargs(self):
+        """Pull values from the form. Raises ValueError on bad numeric input."""
+        full_name = self.entries["full_name"].get().strip()
+        age_raw   = self.entries["age"].get().strip()
+        email     = self.entries["email"].get().strip()
+        phone     = self.entries["phone"].get().strip()
+        address   = self.entries["address"].get().strip()
+        profession= self.entries["profession"].get().strip()
+        reg_no    = self.entries["registration_number"].get().strip()
+        gender    = GENDER_DISPLAY_TO_DB.get(self.gender_combo.get(), None)
+
+        age = None
+        if age_raw:
+            try:
+                age = int(age_raw)
+            except ValueError:
+                raise ValueError("Η ηλικία πρέπει να είναι ακέραιος αριθμός.")
+
+        return {
+            "full_name": full_name,
+            "registration_number": reg_no,
+            "address": address,
+            "phone": phone,
+            "email": email,
+            "age": age,
+            "profession": profession,
+            "gender": gender,
+            "notes": "",
+        }
+
+    def _auto_registration_number(self):
+        """Generate a registration number like M-1011 based on highest existing one."""
+        if not self.service:
+            return "M-1001"
+        existing = self.service.list_members()
+        max_n = 1000
+        for m in existing:
+            rn = (m.get("registration_number") or "").strip()
+            if rn.startswith("M-"):
+                try:
+                    n = int(rn[2:])
+                    if n > max_n:
+                        max_n = n
+                except ValueError:
+                    pass
+        return f"M-{max_n + 1}"
+
+    # =========================================
+    # ΔΗΜΙΟΥΡΓΙΑ / ΕΝΗΜΕΡΩΣΗ
+    # =========================================
+    def save_member(self):
+        if not self.service:
+            return
+
+        try:
+            kwargs = self._form_to_kwargs()
+        except ValueError as e:
+            messagebox.showwarning("Άκυρη τιμή", str(e))
+            return
+
+        if not kwargs["full_name"]:
+            messagebox.showwarning("Άκυρη καταχώρηση",
+                                   "Το ονοματεπώνυμο είναι υποχρεωτικό.")
+            return
+
+        try:
+            if self.selected_member_id is None:
+                # CREATE
+                if not kwargs["registration_number"]:
+                    kwargs["registration_number"] = self._auto_registration_number()
+                self.service.add_member(**kwargs)
+                messagebox.showinfo("Επιτυχία", "Το μέλος δημιουργήθηκε.")
+            else:
+                # UPDATE - registration_number is not updatable
+                update_kwargs = {k: v for k, v in kwargs.items()
+                                 if k != "registration_number"}
+                self.service.update_member(self.selected_member_id, **update_kwargs)
+                messagebox.showinfo("Επιτυχία", "Το μέλος ενημερώθηκε.")
+        except Exception as e:
+            messagebox.showerror("Σφάλμα", str(e))
+            return
+
+        self.refresh_members_table()
+        self.reset()
+
+    # =========================================
+    # ΑΝΑΝΕΩΣΗ / ΤΕΡΜΑΤΙΣΜΟΣ
+    # =========================================
+    def toggle_status(self):
+        if not self.service or self.selected_member_id is None:
+            return
+
+        member = self.service.get_member(self.selected_member_id)
+        if not member:
+            return
+
+        try:
+            if member.get("status") == "active":
+                self.service.deactivate_member(self.selected_member_id)
+                messagebox.showinfo("Επιτυχία",
+                                    "Η εγγραφή του μέλους διεκόπη.")
+            else:
+                self.service.renew_membership(self.selected_member_id)
+                messagebox.showinfo("Επιτυχία",
+                                    "Η εγγραφή του μέλους ανανεώθηκε.")
+        except Exception as e:
+            messagebox.showerror("Σφάλμα", str(e))
+            return
+
+        self.refresh_members_table()
+        self.reset()
+
+    # =========================================
+    # ΠΡΟΤΑΣΗ ΒΙΒΛΙΟΥ - navigate to Recommend
+    # =========================================
+    def go_to_recommend(self):
+        if self.selected_member_id is None:
+            messagebox.showwarning("Επιλογή",
+                                   "Παρακαλώ επιλέξτε πρώτα ένα μέλος.")
+            return
+        self.app.change_page("Πρόταση Βιβλίου")
+
+    # =========================================
+    # Clear form
+    # =========================================
     def clear_entries(self):
-        entries = self.entries
+        for entry in self.entries.values():
+            entry.delete(0, 'end')
+        self.gender_combo.set("")
 
-        for entry in entries.values():
-            entry.delete(0,'end')
-
-    #=========================================
-    #Reset Entries & Selection on Page Change
-    #=========================================    
+    # =========================================
+    # Reset state on navigation
+    # =========================================
     def reset(self):
         self.clear_entries()
-        self.members_table.selection_set(())
-
-
-
-
-
+        try:
+            self.members_table.selection_set(())
+        except Exception:
+            pass
+        self.selected_member_id = None
+        self.save_button.config(text="ΔΗΜΙΟΥΡΓΙΑ")
+        self.status_button.config(text="ΑΝΑΝΕΩΣΗ")
+        self.status_button.state(['disabled'])
+        self.suggestion_button.state(['disabled'])
+        self.clear_button.state(['disabled'])
+        # also refresh data on every navigation so new members appear
+        self.refresh_members_table()

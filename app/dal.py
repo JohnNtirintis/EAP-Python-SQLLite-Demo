@@ -209,6 +209,14 @@ class LibraryDAL:
 
             connection.execute("DELETE FROM categories WHERE id = ?;", (category_id,))
 
+    def update_category(self, category_id: int, name: str, description: str = "") -> CategoryResponseDTO | None:
+        with self.db.get_connection() as connection:
+            connection.execute(
+                "UPDATE categories SET name = ?, description = ? WHERE id = ?;",
+                (name, description, category_id),
+            )
+        return self.get_category(category_id)
+
     # ---------------------------------------------------------
     # BOOKS
     # ---------------------------------------------------------

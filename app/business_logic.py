@@ -80,6 +80,9 @@ class BusinessLogic:
     def delete_category(self, category_id):
         return self.dal.delete_category(category_id)
 
+    def update_category(self, category_id, name, description=""):
+        return self.dal.update_category(category_id, name, description)
+
     # ---------------------------------------------------------
     # BOOKS
     # ---------------------------------------------------------

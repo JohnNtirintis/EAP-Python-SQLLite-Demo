@@ -1,40 +1,25 @@
 from __future__ import annotations
 
 """
-dto.py - *Data Transfer Objects* for the Library Management System.
-
-DTOs separate the data flowing IN (from the user / GUI) from the data
-flowing OUT (from the database to the GUI).  They serve three purposes:
-
-  1. Validation  – ensure required fields are present before hitting the DB.
-  2. Decoupling  – the GUI never touches raw SQL rows; it works with typed objects.
-  3. Clarity     – each operation advertises exactly which fields it needs.
-
-Naming convention
-─────────────────
-  CreateXxxDTO   → fields the caller must supply to INSERT a new row.
-  UpdateXxxDTO   → fields the caller may change on an existing row (all optional).
-  XxxResponseDTO → fields returned to the caller after a read / write.
-"""
-
-"""
 dto.py - Data Transfer Objects for the Library Management System.
 
-DTOs separate:
-  - data flowing IN (Create/Update DTOs)
-  - data flowing OUT (Response DTOs)
+DTOs separate the data flowing IN (from the user / GUI) from the data
+flowing OUT (from the database to the GUI). They serve three purposes:
 
-They ensure:
-  1. Validation before DB access
-  2. Decoupling GUI from SQL rows
-  3. Clear contracts between layers
+  1. Validation  - ensure required fields are present before hitting the DB.
+  2. Decoupling  - the GUI never touches raw SQL rows; it works with typed objects.
+  3. Clarity     - each operation advertises exactly which fields it needs.
+
+Naming convention
+-----------------
+  CreateXxxDTO   -> fields the caller must supply to INSERT a new row.
+  UpdateXxxDTO   -> fields the caller may change on an existing row.
+  XxxResponseDTO -> fields returned to the caller after a read / write.
 """
 
 from dataclasses import dataclass
 from typing import Optional
 
-
-from dataclasses import dataclass
 
 @dataclass
 class DateRangeDTO:
