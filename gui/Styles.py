@@ -20,6 +20,7 @@ FONT_TITLE_BOLD = ("Segoe UI", 18,"bold")
 FONT_SMALL = ("Segoe UI", 10)
 FONT_SUBHEADER = ("Segoe UI", 14)
 FONT_SUBHEADER_BOLD = ("Segoe UI", 14, 'bold')
+FONT_SEC   = ("Segoe UI", 13, "bold")
 
 # ── Chart palette (light-mode friendly) ─────────────────────────
 CHART_COLORS = [

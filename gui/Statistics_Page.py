@@ -6,7 +6,7 @@
 #
 # Sections:
 #   1. Πλήθος βιβλίων ανά μέλος σε χρονική περίοδο  (area chart)
-#   2. Κατανομή προτιμήσεων δανεισμού ανά μέλος      (horizontal bar)
+#   2. Κατανομή προτιμήσεων δανεισμού ανά μέλος      (donut)
 #   3. Κατανομή προτιμήσεων όλων μελών ανά κατηγορία (horizontal bar)
 #   4. Ιστορικό δανεισμού ανά μέλος                  (table)
 #   5. Πλήθος δανεισμών ανά φίλτρο                   (author/age/gender bar)
@@ -22,29 +22,10 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from app.dto import DateRangeDTO
 
-from gui.Styles import (
-    BG_MAIN, BG_CARD, BG_DARK, BG_DARKER,
-    ACCENT, FG_LIGHT, FG_DARK, FG_MUTED,
-    FONT_MAIN, FONT_BOLD, FONT_SMALL,
-)
-
-# ── Tokens not present in styles.py — defined locally ────────────────
-FONT_TITLE = ("Segoe UI", 16, "bold")   # styles.py has (18,) without bold
-FONT_SEC   = ("Segoe UI", 13, "bold")   # section card headers
-
-# ── Chart palette & matplotlib surfaces ──────────────────────────────
-CHART_COLORS = [
-    "#01696f", "#00D5E4", "#da7101", "#437a22",
-    "#006494", "#7a39bb", "#a12c7b", "#a13544",
-    "#d19900", "#0c4e54", "#2e5c10", "#275f8e",
-]
-MPL_BG   = "#EAEAEA"
-MPL_GRID = "#C8C8C8"
-MPL_TEXT = "#1E1E1E"
+from gui.Styles import *
 
 TODAY = date.today().isoformat()
 DATE_MIN  = "2000-01-01"   # default "from" for Section 5 (all-time)
-
 
 # =====================================================================
 class Statistics(tk.Frame):
@@ -234,7 +215,7 @@ class Statistics(tk.Frame):
                         ylabel="Βιβλία")
 
     # ================================================================
-    # SECTION 2 — Category preferences per member (bar chart)
+    # SECTION 2 — Category preferences per member (Donut)
     # ================================================================
 
     def _build_s2(self):
