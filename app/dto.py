@@ -119,7 +119,8 @@ class BookResponseDTO:
     total_copies: int
     available_copies: int
     published_year: Optional[int]
-
+    avg_rating: Optional[float] = None
+    rating_count: Optional[int] = None
 
 # ---------------------------------------------------------
 # LOANS

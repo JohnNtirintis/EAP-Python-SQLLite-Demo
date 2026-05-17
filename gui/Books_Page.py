@@ -9,6 +9,11 @@ from gui.Book_Edit_Page import BookEdit
 
 
 class Books(tk.Frame):
+    ASC_LABEL = "Αύξουσα σειρά"
+    DESC_LABEL = "Φθίνουσα σειρά"
+    RATING_DESC_LABEL = "Βαθμολογία (Φθίνουσα)"
+    RATING_ASC_LABEL = "Βαθμολογία (Αύξουσα)"
+
     def __init__(self, parent, app, service=None):
         super().__init__(parent, bg=BG_MAIN)
         self.app = app
@@ -96,7 +101,12 @@ class Books(tk.Frame):
                         )
         self.book_button.grid(row=1, column=3, sticky='e', padx=(5, 15), pady=15)
 
-        self.SORT_OPTIONS = ["Αύξουσα σειρά", "Φθίνουσα σειρά"]
+        self.SORT_OPTIONS = [
+            self.ASC_LABEL,
+            self.DESC_LABEL,
+            self.RATING_DESC_LABEL,
+            self.RATING_ASC_LABEL,
+        ]
         self.sort_var = tk.StringVar(value=self.SORT_OPTIONS[0])
         self.cat_vars: dict[str, tk.BooleanVar] = {}
         self.book_catalog()
@@ -227,12 +237,12 @@ class Books(tk.Frame):
     #Category Checkboxes
     #=========================================
     def refresh_category_checkboxes(self):
-        #clear checkboxes
+        # clear checkboxes
         for w in self.checkboxes_container.winfo_children():
             w.destroy()
 
         self.cats = self.service.list_categories() if self.service else []
-        #keep checked boxes
+        # keep checked boxes
         old = {k: v.get() for k, v in self.cat_vars.items()}
         self.cat_vars = {}
 
@@ -324,20 +334,42 @@ class Books(tk.Frame):
     #Populate Data function
     #=========================================
     def populate_data(self, books):
+        # Asterisk used to unpack and send each ID,
+        # as a separate argument
         self.books_table.delete(*self.books_table.get_children())
 
-        rev = self.sort_var.get() == self.SORT_OPTIONS[1]
-        books = sorted(books,
-                       key=lambda b: (b.get("title") or "").lower(),
-                       reverse=rev)
+        sort_choice = self.sort_var.get()
+        # Sort by rating or title depending on the selected option.
+        if sort_choice in (self.RATING_DESC_LABEL, self.RATING_ASC_LABEL):
+            reverse = sort_choice == self.RATING_DESC_LABEL
+            books = sorted(
+                books,
+                key=lambda b: float(b.get("avg_rating") or b.get("rating") or 0),
+                reverse=reverse,
+            )
+        else:
+            rev = sort_choice == self.DESC_LABEL
+            books = sorted(
+                books,
+                key=lambda b: (b.get("title") or "").lower(),
+                reverse=rev,
+            )
 
         for b in books:
             avail = int(b.get("available_copies", 0))
             total = int(b.get("total_copies", 0))
             copies_str = f"{avail}/{total} τμχ"
-            rat = b.get("avg_rating") or b.get("rating")
-            rat_str = f"{rat}/5" if rat else "—"
+            rat_val = b.get("avg_rating")
+            if rat_val is None:
+                rat_val = b.get("rating")
+            if rat_val is None:
+                rat_str = "--"
+            else:
+                count = b.get("rating_count")
+                suffix = f" ({int(count)})" if count is not None else ""
+                rat_str = f"{float(rat_val):.1f}/5{suffix}"
 
+            # Populate table
             self.books_table.insert(
                 "", "end", iid=str(b["id"]),
                 values=(
@@ -358,10 +390,14 @@ class Books(tk.Frame):
     # Apply local filters (sort + category checkboxes)
     #=========================================
     def apply_filters(self):
+        # Get any active categories
         active_cats = {name for name, var in self.cat_vars.items() if var.get()}
+        # No categories selected. Show all books
         if not active_cats:
             self.populate_data(self.booksdata)
             return
+        # Filter books by selected categorie(s).
+        # Then populate the table with the filtered list
         filtered = [b for b in self.booksdata
                     if b.get("category_name") in active_cats]
         self.populate_data(filtered)
@@ -446,6 +482,9 @@ class Books(tk.Frame):
                     "category_id": getattr(b, "category_id", None),
                     "category_name": getattr(b, "category_name", ""),
                     "available_copies": getattr(b, "available_copies", 0),
+                    "avg_rating": getattr(b, "avg_rating", None),
+                    "rating": getattr(b, "rating", None),
+                    "rating_count": getattr(b, "rating_count", None),
                     "total_copies": getattr(b, "total_copies", 0),
                 })
         return normalized

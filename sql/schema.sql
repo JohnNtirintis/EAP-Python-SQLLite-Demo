@@ -73,3 +73,6 @@ CREATE INDEX IF NOT EXISTS idx_books_category ON books(category_id);
 
 -- Speeds up Dashboard KPI query: SELECT COUNT(*) FROM loans WHERE status = 'borrowed'
 CREATE INDEX IF NOT EXISTS idx_loans_status ON loans(status);
+
+-- Speeds up average rating lookups for books
+CREATE INDEX IF NOT EXISTS idx_ratings_book ON ratings(book_id);

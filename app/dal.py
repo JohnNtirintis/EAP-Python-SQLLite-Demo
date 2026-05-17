@@ -327,8 +327,16 @@ class LibraryDAL:
     def list_books(self) -> list[BookResponseDTO]:
         sql = (
             "SELECT b.id, b.title, b.author, b.isbn, b.category_id, c.name AS category_name, "
-            "b.available_copies, b.total_copies, b.published_year "
-            "FROM books b JOIN categories c ON c.id = b.category_id ORDER BY b.title;"
+            "b.available_copies, b.total_copies, b.published_year, "
+            "r.avg_rating AS avg_rating, r.rating_count AS rating_count "
+            "FROM books b "
+            "JOIN categories c ON c.id = b.category_id "
+            "LEFT JOIN ("
+            "  SELECT book_id, AVG(rating) AS avg_rating, COUNT(*) AS rating_count "
+            "  FROM ratings "
+            "  GROUP BY book_id"
+            ") r ON r.book_id = b.id "
+            "ORDER BY LOWER(b.title), b.id;"
         )
         with self.db.get_connection() as connection:
             rows = connection.execute(sql).fetchall()
@@ -344,6 +352,8 @@ class LibraryDAL:
                 total_copies=row["total_copies"],
                 available_copies=row["available_copies"],
                 published_year=row["published_year"],
+                avg_rating=row["avg_rating"],
+                rating_count=row["rating_count"],
             )
             for row in rows
         ]
@@ -352,10 +362,17 @@ class LibraryDAL:
         pattern = f"%{keyword.strip()}%"
         sql = (
             "SELECT b.id, b.title, b.author, b.isbn, b.category_id, c.name AS category_name, "
-            "b.available_copies, b.total_copies, b.published_year "
-            "FROM books b JOIN categories c ON c.id = b.category_id "
+            "b.available_copies, b.total_copies, b.published_year, "
+            "r.avg_rating AS avg_rating, r.rating_count AS rating_count "
+            "FROM books b "
+            "JOIN categories c ON c.id = b.category_id "
+            "LEFT JOIN ("
+            "  SELECT book_id, AVG(rating) AS avg_rating, COUNT(*) AS rating_count "
+            "  FROM ratings "
+            "  GROUP BY book_id"
+            ") r ON r.book_id = b.id "
             "WHERE b.title LIKE ? OR b.author LIKE ? OR b.isbn LIKE ? OR c.name LIKE ? "
-            "ORDER BY b.title;"
+            "ORDER BY LOWER(b.title), b.id;"
         )
         with self.db.get_connection() as connection:
             rows = connection.execute(sql, (pattern, pattern, pattern, pattern)).fetchall()
@@ -371,6 +388,8 @@ class LibraryDAL:
                 total_copies=row["total_copies"],
                 available_copies=row["available_copies"],
                 published_year=row["published_year"],
+                avg_rating=row["avg_rating"],
+                rating_count=row["rating_count"],
             )
             for row in rows
         ]
@@ -758,6 +777,9 @@ class LibraryDAL:
     # RECOMMENDATIONS
     # ---------------------------------------------------------
     def recommend_books(self, member_id: int, limit: int = 5) -> list[RecommendationDTO]:
+        # Score = category affinity (member loans per category) + avg rating signal.
+        # Subquery mc: how often the member borrowed each category.
+        # Subquery br: average rating per book.
         sql = """
             SELECT b.id, b.title, b.author, b.isbn, b.category_id,
                    c.name AS category_name, b.available_copies, b.total_copies,
