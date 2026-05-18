@@ -9,8 +9,8 @@ from gui.Book_Edit_Page import BookEdit
 
 
 class Books(tk.Frame):
-    ASC_LABEL = "Αύξουσα σειρά"
-    DESC_LABEL = "Φθίνουσα σειρά"
+    ASC_LABEL = "Τίτλος (Αύξουσα)"
+    DESC_LABEL = "Τίτλος (Φθίνουσα)"
     RATING_DESC_LABEL = "Βαθμολογία (Φθίνουσα)"
     RATING_ASC_LABEL = "Βαθμολογία (Αύξουσα)"
 
@@ -396,7 +396,7 @@ class Books(tk.Frame):
         if not active_cats:
             self.populate_data(self.booksdata)
             return
-        # Filter books by selected categorie(s).
+        # Filter books by selected category(ies).
         # Then populate the table with the filtered list
         filtered = [b for b in self.booksdata
                     if b.get("category_name") in active_cats]
@@ -461,11 +461,13 @@ class Books(tk.Frame):
         except Exception:
             pass
         self.searchbar_book_var.set("Αναζήτηση...")
+        for var in self.cat_vars.values():
+            var.set(False)
+        if self.cat_expanded == True:
+            self.cat_toggle()
+        self.sort_var.set(self.ASC_LABEL)
         self.booksdata = self._load_books()
         self.populate_data(self.booksdata)
-        # also refresh categories in case new ones were added on the Categories page
-        if hasattr(self, "checkboxes_container") and self.cat_expanded:
-            self.refresh_category_checkboxes()
 
     def _books_to_dicts(self, books):
         normalized = []

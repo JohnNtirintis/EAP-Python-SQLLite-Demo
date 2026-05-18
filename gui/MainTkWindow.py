@@ -73,8 +73,7 @@ class MainTkWindow(tk.Tk):
             "Πρόταση Βιβλίου" : Recommend,
             "Βαθμολογία" : Rating,
             "Κατηγορίες" : Categories,
-            "Επεξεργασία Βιβλίου" : BookEdit,
-
+            "Επεξεργασία Βιβλίου" : BookEdit
             }
         
         #creates instances for each page and saves in dictionary
