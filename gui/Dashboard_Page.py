@@ -220,6 +220,9 @@ class Dashboard(tk.Frame):
         figure_plot.spines.left.set_color(BG_DARK)
         figure_plot.tick_params('both', colors=BG_DARK)
 
+        figure_plot.xaxis.label.set_visible(False)
+        figure_plot.yaxis.label.set_visible(False)
+
         figure_plot.axes.grid(axis='y', color=MPL_GRID, linewidth=0.5)
         figure.subplots_adjust(top=0.75, bottom=0.15, left=0.08, right=0.95)
 
