@@ -1,7 +1,6 @@
 # ─── imports ─────────────────────────
 import tkinter as tk
 from tkinter import ttk, font, messagebox
-from datetime import datetime, date
 
 from gui.Styles import *
 from gui.Dashboard_Page import autosize_content
