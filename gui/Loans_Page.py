@@ -425,7 +425,7 @@ class Loans(tk.Frame):
         self.searchmember_table.delete(*self.searchmember_table.get_children())
         for m in self._all_members:
             name = m.get("full_name", "") or ""
-            reg  = m.get("registration_number", "") or ""
+            reg = m.get("registration_number", "") or ""
             email = m.get("email", "") or ""
             if term_l:
                 hay = " ".join([name, reg, email]).lower()

@@ -4,6 +4,7 @@ from tkinter import ttk, font, messagebox
 
 from gui.Styles import *
 from gui.Dashboard_Page import autosize_content
+from gui.Loans_Page import remove_placeholder_var,add_placeholder_var
 
 
 # Display labels used in the Φύλο combobox <-> the DB values understood by the schema.
@@ -67,6 +68,25 @@ class Members(tk.Frame):
                             font=FONT_TITLE
                             )
         table_title.grid(row=2, column=0, padx=15, pady=(5, 10), sticky='nsew')
+
+        #searchbar
+        self.searchbar_member_var = tk.StringVar()
+        self.searchbar_member = ttk.Entry(
+                    self.member_frame,
+                    font=FONT_MAIN,
+                    style="CustomEntry.TEntry",
+                    exportselection=False,
+                    textvariable=self.searchbar_member_var
+                    )
+        self.searchbar_member.grid(row=2, column=0, sticky='e', padx=15, pady=10)
+        self.searchbar_member_var.set("Αναζήτηση...")
+        self.searchbar_member.bind("<FocusIn>",
+                                   lambda e: remove_placeholder_var(self.searchbar_member_var))
+        self.searchbar_member.bind("<FocusOut>",
+                                   lambda e: add_placeholder_var(self.searchbar_member_var))
+        self.searchbar_member.bind("<Return>", lambda e: self.run_search())
+        self.searchbar_member_var.trace_add("write", lambda *a: self.run_search())
+
 
         self.entries = {}
         self.create_members_profile()
@@ -454,8 +474,55 @@ class Members(tk.Frame):
         self.refresh_members_table()
         self.reset()
 
+    #=========================================
+    # search members
+    #=========================================
+    def run_search(self):
+        if not self.service:
+            return
+        term = self.searchbar_member_var.get().strip()
+        if term == "Αναζήτηση...":
+            term = ""
+        term_l = term.lower()
+
+        self.members_table.delete(*self.members_table.get_children())
+
+        for m in self.service.list_members():
+            name = m.get("full_name", "") or ""
+            reg = m.get("registration_number", "") or ""
+            email = m.get("email", "") or ""
+            phone = m.get("phone", "") or ""
+            if term_l:
+                hay = " ".join([name, reg, email,phone]).lower()
+                if term_l not in hay:
+                    continue
+
+            gender_display = GENDER_DB_TO_DISPLAY.get(m.get("gender"),
+                                                      m.get("gender") or "")
+            status_display = "Ενεργό" if m.get("status") == "active" else "Ανενεργό"
+            age_display = "" if m.get("age") in (None, "") else str(m.get("age"))
+
+            self.members_table.insert(
+                "",
+                "end",
+                iid=str(m["id"]),
+                values=(
+                    f"{m['id']:04d}",
+                    name,
+                    reg,
+                    gender_display,
+                    age_display,
+                    email,
+                    phone,
+                    m.get("address", "") or "",
+                    m.get("profession", "") or "",
+                    status_display,
+                ),
+            )
+        autosize_content(self.members_table)
+
     # =========================================
-    # ΠΡΟΤΑΣΗ ΒΙΒΛΙΟΥ - navigate to Recommend
+    # navigate to Recommend
     # =========================================
     def go_to_recommend(self):
         if self.selected_member_id is None:

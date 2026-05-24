@@ -1,45 +1,88 @@
-# gui/Statistics_Page.py
-# Statistics page 
-#
-# ALL database access goes through self.service (LibraryBusinessLogic).
-# No sqlite3 imports, no direct SQL, no placeholders.
-#
-# Sections:
-#   1. Πλήθος βιβλίων ανά μέλος σε χρονική περίοδο  (area chart)
-#   2. Κατανομή προτιμήσεων δανεισμού ανά μέλος      (donut)
-#   3. Κατανομή προτιμήσεων όλων μελών ανά κατηγορία (horizontal bar)
-#   4. Ιστορικό δανεισμού ανά μέλος                  (table)
-#   5. Πλήθος δανεισμών ανά φίλτρο                   (author/age/gender bar)
-
+# ─── imports ─────────────────────────
 import tkinter as tk
 from tkinter import ttk, messagebox
-from datetime import date, datetime
+from datetime import date, datetime,timedelta
 
-import matplotlib
-matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import numpy as np
 
 from app.dto import DateRangeDTO
 
 from gui.Styles import *
+from gui.Dashboard_Page import autosize_content
 
 TODAY = date.today().isoformat()
 DATE_MIN  = "2000-01-01"   # default "from" for Section 5 (all-time)
 
 # =====================================================================
 class Statistics(tk.Frame):
-    """Statistics page with 5 scrollable sections."""
-
     def __init__(self, parent, controller, service=None):
         super().__init__(parent, bg=BG_MAIN)
         self.controller = controller
-        self.service    = service
+        self.service = service
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self._build_ui()
+        stats_frame = tk.Frame(self,
+                               bg=BG_MAIN,
+                               padx=30,
+                               pady=20
+                               )
+        stats_frame.grid(row=0, column=0, sticky='nsew')
+        stats_frame.grid_columnconfigure(0, weight=1)
+        stats_frame.grid_rowconfigure(0, weight=0)
+        stats_frame.grid_rowconfigure(1, weight=1)
+
+        stats_title = tk.Label(
+            stats_frame,
+            text="Στατιστικά",
+            anchor='w',
+            bd=0,
+            bg=BG_MAIN,
+            fg=FG_MUTED,
+            font=FONT_TITLE
+        )
+        stats_title.grid(row=0, column=0, padx=15, pady=(5, 10), sticky='nsew')
+
+        # Scrollable canvas
+        canvas_frame = tk.Frame(stats_frame, bg=BG_MAIN)
+        canvas_frame.grid(row=1, column=0, sticky="nsew")
+        canvas_frame.grid_rowconfigure(0, weight=1)
+        canvas_frame.grid_columnconfigure(0, weight=1)
+        canvas_frame.grid_columnconfigure(1, weight=0)
+
+        self.cvs = tk.Canvas(canvas_frame, bg=BG_MAIN, highlightthickness=0)
+        v_scrollbar = ttk.Scrollbar(canvas_frame, orient="vertical", command=self.cvs.yview)
+        self.cvs.configure(yscrollcommand=v_scrollbar.set)
+        self.cvs.grid(row=0, column=0, sticky="nsew")
+        v_scrollbar.grid(row=0, column=1, sticky="ns")
+
+        self.cvs_content_frame = tk.Frame(self.cvs, bg=BG_MAIN)
+        self.cvs_content_frame.grid_columnconfigure([0], weight=1)
+        for i in range(5):
+            self.cvs_content_frame.grid_rowconfigure(i, weight=1)
+
+        win_id = self.cvs.create_window(
+            (0, 0), window=self.cvs_content_frame, anchor="nw")
+
+        self.cvs_content_frame.bind(
+            "<Configure>",
+            lambda e: self.cvs.configure(
+                scrollregion=self.cvs.bbox("all")))
+        self.cvs.bind(
+            "<Configure>",
+            lambda e: self.cvs.itemconfig(win_id, width=e.width))
+
+        self.cvs.bind_all(
+            "<MouseWheel>",
+            self._on_mousewheel)
+
+        self._build_s1()
+        self._build_s2()
+        self._build_s3()
+        self._build_s4()
 
     # ================================================================
     # Navigation hook
@@ -49,107 +92,70 @@ class Statistics(tk.Frame):
         """Called by MainTkWindow.show_frame() — refresh member combos."""
         self._s1_refresh_members("")
         self._s2_refresh_members("")
-        self._s4_refresh_members("")
-
-    # ================================================================
-    # UI skeleton
-    # ================================================================
-
-    def _build_ui(self):
-        outer = tk.Frame(self, bg=BG_MAIN, padx=28, pady=20)
-        outer.grid(row=0, column=0, sticky="nsew")
-        outer.grid_columnconfigure(0, weight=1)
-        outer.grid_rowconfigure(1, weight=1)
-
-        tk.Label(outer, text="Στατιστικά",
-                 bg=BG_MAIN, fg=FG_DARK, font=FONT_TITLE,
-                 anchor="w").grid(row=0, column=0, sticky="w", pady=(0, 14))
-
-        # Scrollable canvas
-        host = tk.Frame(outer, bg=BG_MAIN)
-        host.grid(row=1, column=0, sticky="nsew")
-        host.grid_rowconfigure(0, weight=1)
-        host.grid_columnconfigure(0, weight=1)
-
-        self._cvs = tk.Canvas(host, bg=BG_MAIN, highlightthickness=0)
-        vsb = ttk.Scrollbar(host, orient="vertical", command=self._cvs.yview)
-        self._cvs.configure(yscrollcommand=vsb.set)
-        self._cvs.grid(row=0, column=0, sticky="nsew")
-        vsb.grid(row=0, column=1, sticky="ns")
-
-        self.content = tk.Frame(self._cvs, bg=BG_MAIN)
-        self.content.grid_columnconfigure(0, weight=1)
-
-        win_id = self._cvs.create_window(
-            (0, 0), window=self.content, anchor="nw")
-
-        self.content.bind(
-            "<Configure>",
-            lambda e: self._cvs.configure(
-                scrollregion=self._cvs.bbox("all")))
-        self._cvs.bind(
-            "<Configure>",
-            lambda e: self._cvs.itemconfig(win_id, width=e.width))
-        self._cvs.bind_all(
-            "<MouseWheel>",
-            lambda e: self._cvs.yview_scroll(
-                -1 * (e.delta // 120), "units"))
-
-        self._build_s1()
-        self._build_s2()
-        self._build_s3()
-        self._build_s4()
-        self._build_s5()
+        self._s3_refresh_members("")
 
     # ================================================================
     # SECTION 1 — Daily loan summary per member in a time period
     # ================================================================
 
     def _build_s1(self):
-        card = self._make_card(
-            self.content, row=0,
-            title="1.  Πλήθος βιβλίων ανά μέλος σε χρονική περίοδο",
-            accent=CHART_COLORS[0])
+        self._s1_card, self._s1_content = self.card_create(self.cvs_content_frame,
+                                        0,"Δανεισμοί ανά Μέλος")
 
-        row1 = tk.Frame(card, bg=BG_CARD)
-        row1.pack(fill="x", pady=(0, 8))
-        tk.Label(row1, text="Από:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN).pack(side="left")
-        self._s1_from = self._date_entry(row1)
-        self._s1_from.pack(side="left", padx=(4, 16))
-        tk.Label(row1, text="Έως:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN).pack(side="left")
-        self._s1_to = self._date_entry(row1)
-        self._s1_to.pack(side="left", padx=(4, 0))
+        #Data filter frame
+        filter_frame_s1 = tk.Frame(self._s1_content, bg=BG_CARD)
+        filter_frame_s1.grid(row=0, column=0, sticky="nsew", pady=(0,10))
+        filter_frame_s1.grid_rowconfigure(0, weight=1)
+        for i in range (7):
+            filter_frame_s1.grid_columnconfigure(i, weight=1 if i==5 else 0)
 
-        row2 = tk.Frame(card, bg=BG_CARD)
-        row2.pack(fill="x", pady=(0, 10))
-        tk.Label(row2, text="Μέλος:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN).pack(side="left")
-        self._s1_sv = tk.StringVar()
-        se = tk.Entry(row2, textvariable=self._s1_sv,
-                      font=FONT_MAIN, relief="flat", bd=2,
-                      bg="#FFFFFF", fg=FG_DARK,
-                      insertbackground=FG_DARK, width=20)
-        se.pack(side="left", padx=(4, 6), ipady=4)
-        se.bind("<KeyRelease>",
-                lambda e: self._s1_refresh_members(
-                    self._s1_sv.get().strip()))
+        #Date filters
+        _s1_from_lbl = tk.Label(
+                filter_frame_s1,
+                text="Από:",
+                bg=BG_CARD,
+                fg=FG_MUTED,
+                font=FONT_MAIN)
+        _s1_from_lbl.grid(row=0,column=0,padx=10, pady=10, sticky='nsew')
+        self._s1_from = self.date_entry(filter_frame_s1)
+        self._s1_from.grid(row=0,column=1, padx=(5, 10))
 
+        _s1_to_lbl = tk.Label(
+                filter_frame_s1,
+                text="Έως:",
+                bg=BG_CARD,
+                fg=FG_MUTED,
+                font=FONT_MAIN)
+        _s1_to_lbl.grid(row=0,column=2,padx=10, pady=10, sticky='nsew')
+        self._s1_to = self.date_entry(filter_frame_s1)
+        self._s1_to.grid(row=0,column=3, padx=(5, 10))
+
+        _s1_member_lbl = tk.Label(
+                filter_frame_s1,
+                text="Μέλος:",
+                bg=BG_CARD,
+                fg=FG_MUTED,
+                font=FONT_MAIN)
+        _s1_member_lbl.grid(row=0,column=4,padx=10, pady=10, sticky='nsew')
         self._s1_combo = ttk.Combobox(
-            row2, state="readonly", font=FONT_MAIN, width=28)
-        self._s1_combo.pack(side="left", padx=(0, 16), ipady=3)
+                filter_frame_s1,
+                state="readonly",
+                font=FONT_MAIN,
+                width=28,
+                style="CustomCombobox.TCombobox",
+        )
+        self._s1_combo.grid(row=0,column=5, padx=10,pady=10,sticky='w')
         self._s1_member_map: dict = {}
 
-        self._make_btn(row2, "🔍  Αναζήτηση", self._run_s1,
-                       bg=ACCENT, fg=FG_DARK).pack(side="left")
+        #search btn
+        self._s1_search_btn = self.make_btn(parent=filter_frame_s1,text="Αναζήτηση",command=self._run_s1)
+        self._s1_search_btn.grid(row=0,column=6,padx=10, pady=10, sticky='nsw')
 
-        self._s1_result = tk.Frame(card, bg=BG_CARD)
-        self._s1_result.pack(fill="x")
+        self._s1_result = tk.Frame(self._s1_content, bg=BG_CARD)
+        self._s1_result.grid(row=1, column=0, sticky="nsew")
 
     def _s1_refresh_members(self, term=""):
-        members = (self.service.search_members(term) if term
-                   else self.service.list_members())
+        members = self.service.list_members()
         self._s1_member_map = {
             f"[{m['id']}] {m['full_name']}": m["id"]
             for m in members
@@ -159,6 +165,7 @@ class Statistics(tk.Frame):
             self._s1_combo.current(0)
 
     def _run_s1(self):
+        self._s1_result.grid()
         d_from = self._s1_from.get().strip()
         d_to   = self._s1_to.get().strip()
         sel    = self._s1_combo.get()
@@ -170,13 +177,6 @@ class Statistics(tk.Frame):
             return
 
         member_id = self._s1_member_map.get(sel)
-        if not member_id:
-            self._s1_refresh_members(self._s1_sv.get().strip())
-            sel = self._s1_combo.get()
-            member_id = self._s1_member_map.get(sel)
-        if not member_id:
-            messagebox.showwarning("Επιλογή", "Παρακαλώ επιλέξτε έγκυρο μέλος.")
-            return
 
         date_range = DateRangeDTO(date_from=d_from, date_to=d_to)
         self._clear(self._s1_result)
@@ -192,84 +192,111 @@ class Statistics(tk.Frame):
                           "Δεν βρέθηκαν δανεισμοί για την περίοδο.")
             return
 
-        # Table
-        cols  = ("loan_date", "book_count", "titles")
-        heads = [("Ημερομηνία", 110),
-                 ("Πλήθος Βιβλίων", 130),
-                 ("Τίτλοι", 500)]
-        frame = self._make_tree(self._s1_result, cols, heads,
-                                height=min(len(rows), 7))
-        tree = frame.winfo_children()[0]
-        for r in rows:
-            tree.insert("", "end",
-                        values=(r["loan_date"],
-                                r["total_books"],
-                                r["titles"]))
-        frame.pack(fill="x", pady=(6, 10))
-
-        # Area chart
         dates  = [r["loan_date"]   for r in rows]
         counts = [r["total_books"] for r in rows]
-        self._draw_area(self._s1_result, dates, counts,
-                        title=f"Δανεισμοί ανά ημέρα — {sel}",
-                        ylabel="Βιβλία")
+
+        dates_dt = [datetime.strptime(d, "%Y-%m-%d") for d in dates]
+
+        #get full date range from entries
+        start_date = datetime.strptime(d_from, "%Y-%m-%d")
+        end_date = datetime.strptime(d_to, "%Y-%m-%d")
+
+        full_dates=[]
+        full_counts=[]
+
+        #row pointer
+        row = 0
+
+        d= start_date
+        while d<=end_date:
+            full_dates.append(d.strftime("%Y-%m-%d"))
+            if row<len(dates_dt) and dates_dt[row]==d:
+                full_counts.append(counts[row])
+                row +=1
+            else:
+                full_counts.append(0)
+            d += timedelta(days=1)
+
+        self._draw_area(self._s1_result, full_dates, full_counts)
 
     # ================================================================
     # SECTION 2 — Category preferences per member (Donut)
     # ================================================================
 
     def _build_s2(self):
-        card = self._make_card(
-            self.content, row=1,
-            title="2.  Κατανομή προτιμήσεων δανεισμού ανά μέλος",
-            accent=CHART_COLORS[2])
+        self._s2_card, self._s2_content = self.card_create(
+            self.cvs_content_frame, row=1,
+            title="Δανεισμοί ανά Κατηγορία")
 
-        top = tk.Frame(card, bg=BG_CARD)
-        top.pack(fill="x", pady=(0, 10))
-        tk.Label(top, text="Από:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN).pack(side="left")
-        self._s2_from = self._date_entry(top)
-        self._s2_from.pack(side="left", padx=(4, 16))
-        tk.Label(top, text="Έως:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN).pack(side="left")
-        self._s2_to = self._date_entry(top)
-        self._s2_to.pack(side="left", padx=(4, 20))
-        tk.Label(top, text="Μέλος:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN).pack(side="left")
-        self._s2_sv = tk.StringVar()
-        se = tk.Entry(top, textvariable=self._s2_sv,
-                      font=FONT_MAIN, relief="flat", bd=2,
-                      bg="#FFFFFF", fg=FG_DARK,
-                      insertbackground=FG_DARK, width=20)
-        se.pack(side="left", padx=(4, 6), ipady=4)
-        se.bind("<KeyRelease>",
-                lambda e: self._s2_refresh_members(
-                    self._s2_sv.get().strip()))
+        # Data filter frame
+        _s2_filter_frame = tk.Frame(self._s2_content, bg=BG_CARD)
+        _s2_filter_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 10))
+        _s2_filter_frame.grid_rowconfigure(0, weight=1)
+        for i in range(7):
+            _s2_filter_frame.grid_columnconfigure(i, weight=1 if i == 5 else 0)
+
+        # Date filters
+        _s2_from_lbl = tk.Label(
+            _s2_filter_frame,
+            text="Από:",
+            bg=BG_CARD,
+            fg=FG_MUTED,
+            font=FONT_MAIN)
+        _s2_from_lbl.grid(row=0, column=0, padx=10, pady=10, sticky='nsew')
+        self._s2_from = self.date_entry(_s2_filter_frame)
+        self._s2_from.grid(row=0, column=1, padx=(5, 10))
+
+        _s2_to_lbl = tk.Label(
+            _s2_filter_frame,
+            text="Έως:",
+            bg=BG_CARD,
+            fg=FG_MUTED,
+            font=FONT_MAIN)
+        _s2_to_lbl.grid(row=0, column=2, padx=10, pady=10, sticky='nsew')
+        self._s2_to = self.date_entry(_s2_filter_frame)
+        self._s2_to.grid(row=0, column=3, padx=(5, 10))
+
+        _s2_member_lbl = tk.Label(
+            _s2_filter_frame,
+            text="Μέλος:",
+            bg=BG_CARD,
+            fg=FG_MUTED,
+            font=FONT_MAIN)
+        _s2_member_lbl.grid(row=0, column=4, padx=10, pady=10, sticky='nsew')
         self._s2_combo = ttk.Combobox(
-            top, state="readonly", font=FONT_MAIN, width=28)
-        self._s2_combo.pack(side="left", padx=(0, 16), ipady=3)
+            _s2_filter_frame,
+            state="readonly",
+            font=FONT_MAIN,
+            width=28,
+            style="CustomCombobox.TCombobox",
+        )
+        self._s2_combo.grid(row=0, column=5, padx=10, pady=10, sticky='w')
         self._s2_member_map: dict = {}
-        self._make_btn(top, "📊  Γράφημα", self._run_s2,
-                       bg=CHART_COLORS[2], fg="#FFFFFF").pack(side="left")
 
-        self._s2_result = tk.Frame(card, bg=BG_CARD)
-        self._s2_result.pack(fill="x")
+        # search btn
+        self._s2_search_btn = self.make_btn(parent=_s2_filter_frame, text="Αναζήτηση", command=self._run_s2)
+        self._s2_search_btn.grid(row=0, column=6, padx=10, pady=10, sticky='nsw')
+
+        self._s2_result = tk.Frame(self._s2_content, bg=BG_CARD)
+        self._s2_result.grid(row=1, column=0, sticky="nsew")
 
     def _s2_refresh_members(self, term=""):
-        members = (self.service.search_members(term) if term
-                   else self.service.list_members())
-        self._s2_member_map = {
-            f"[{m['id']}] {m['full_name']}": m["id"]
-            for m in members
-        }
+        members = self.service.list_members()
+        self._s2_member_map = {"Όλα τα μέλη": None}
+        for m in members:
+            key = f"[{m['id']}] {m['full_name']}"
+            self._s2_member_map[key]= m["id"]
+
         self._s2_combo["values"] = list(self._s2_member_map.keys())
         if self._s2_combo["values"]:
             self._s2_combo.current(0)
 
     def _run_s2(self):
+        self._s2_result.grid()
         d_from = self._s2_from.get().strip()
         d_to   = self._s2_to.get().strip()
         sel    = self._s2_combo.get()
+
         if not self._valid_range(d_from, d_to):
             return
         if not sel:
@@ -277,19 +304,15 @@ class Statistics(tk.Frame):
             return
 
         member_id = self._s2_member_map.get(sel)
-        if not member_id:
-            self._s2_refresh_members(self._s2_sv.get().strip())
-            sel = self._s2_combo.get()
-            member_id = self._s2_member_map.get(sel)
-        if not member_id:
-            messagebox.showwarning("Επιλογή", "Παρακαλώ επιλέξτε έγκυρο μέλος.")
-            return
 
         date_range = DateRangeDTO(date_from=d_from, date_to=d_to)
         self._clear(self._s2_result)
 
         try:
-            rows = self.service.get_member_category_stats(member_id, date_range)
+            if member_id is None:
+                rows = self.service.get_all_category_stats(date_range)
+            else:
+                rows = self.service.get_member_category_stats(member_id, date_range)
         except Exception as ex:
             self._no_data(self._s2_result, str(ex))
             return
@@ -301,241 +324,182 @@ class Statistics(tk.Frame):
 
         self._draw_donut(
             self._s2_result,
-            [(r["category"], r["total"]) for r in rows],
-            f"Κατηγορίες δανεισμού — {sel}")
+            [(r["category"], r["total"]) for r in rows])
 
-    # ================================================================
-    # SECTION 3 — Category distribution all members (bar chart)
-    # ================================================================
+    # # ================================================================
+    # # SECTION 3 — Full loan history per member (table)
+    # # ================================================================
 
     def _build_s3(self):
-        card = self._make_card(
-            self.content, row=2,
-            title="3.  Κατανομή προτιμήσεων όλων μελών ανά κατηγορία",
-            accent=CHART_COLORS[3])
+        self._s3_card, self._s3_content = self.card_create(
+            self.cvs_content_frame, row=2,
+            title="Ιστορικό δανεισμών")
 
-        dr = tk.Frame(card, bg=BG_CARD)
-        dr.pack(fill="x", pady=(0, 10))
-        tk.Label(dr, text="Από:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN).pack(side="left")
-        self._s3_from = self._date_entry(dr)
-        self._s3_from.pack(side="left", padx=(4, 16))
-        tk.Label(dr, text="Έως:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN).pack(side="left")
-        self._s3_to = self._date_entry(dr)
-        self._s3_to.pack(side="left", padx=(4, 16))
-        self._make_btn(dr, "📊  Γράφημα", self._run_s3,
-                       bg=CHART_COLORS[3], fg="#FFFFFF").pack(side="left")
+        # Data filter frame
+        _s3_filter_frame = tk.Frame(self._s3_content, bg=BG_CARD)
+        _s3_filter_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 10))
+        _s3_filter_frame.grid_rowconfigure(0, weight=1)
+        for i in range (3):
+            _s3_filter_frame.grid_columnconfigure(i, weight=1 if i==1 else 0)
 
-        self._s3_result = tk.Frame(card, bg=BG_CARD)
-        self._s3_result.pack(fill="x")
+        # Date filters
+        _s3_member_lbl = tk.Label(
+            _s3_filter_frame,
+            text="Μέλος:",
+            bg=BG_CARD,
+            fg=FG_MUTED,
+            font=FONT_MAIN)
+        _s3_member_lbl.grid(row=0, column=0, padx=10, pady=10, sticky='nsew')
+        self._s3_combo = ttk.Combobox(
+            _s3_filter_frame,
+            state="readonly",
+            font=FONT_MAIN,
+            width=28,
+            style="CustomCombobox.TCombobox",
+        )
+        self._s3_combo.grid(row=0, column=1, padx=10, pady=10, sticky='w')
+        self._s3_member_map: dict = {}
+
+        # search btn
+        self._s3_search_btn = self.make_btn(parent=_s3_filter_frame, text="Αναζήτηση", command=self._run_s3)
+        self._s3_search_btn.grid(row=0, column=2, padx=10, pady=10, sticky='nsw')
+
+        self._s3_result = tk.Frame(self._s3_content, bg=BG_CARD)
+        self._s3_result.grid(row=1, column=0, sticky="nsew")
+
+    def _s3_refresh_members(self, term=""):
+        members = self.service.list_members()
+        self._s3_member_map = {
+            f"[{m['id']}] {m['full_name']}": m["id"]
+            for m in members
+        }
+        self._s3_combo["values"] = list(self._s3_member_map.keys())
+        if self._s3_combo["values"]:
+            self._s3_combo.current(0)
 
     def _run_s3(self):
-        d_from = self._s3_from.get().strip()
-        d_to   = self._s3_to.get().strip()
-        if not self._valid_range(d_from, d_to):
+        self._s3_result.grid()
+        sel = self._s3_combo.get()
+        if not sel:
+            messagebox.showwarning("Επιλογή", "Παρακαλώ επιλέξτε μέλος.")
             return
 
-        date_range = DateRangeDTO(date_from=d_from, date_to=d_to)
+        member_id = self._s3_member_map.get(sel)
         self._clear(self._s3_result)
 
         try:
-            rows = self.service.get_all_category_stats(date_range)
+            loans = self.service.get_member_loan_history(member_id)
         except Exception as ex:
             self._no_data(self._s3_result, str(ex))
             return
 
-        if not rows:
-            self._no_data(self._s3_result, "Δεν βρέθηκαν δεδομένα.")
-            return
-
-        self._draw_bar_h(
-            self._s3_result,
-            [(r["category"], r["total"]) for r in rows],
-            "Συνολικοί δανεισμοί ανά κατηγορία")
-
-    # ================================================================
-    # SECTION 4 — Full loan history per member (table)
-    # ================================================================
-
-    def _build_s4(self):
-        card = self._make_card(
-            self.content, row=3,
-            title="4.  Ιστορικό δανεισμού ανά μέλος",
-            accent=CHART_COLORS[4])
-
-        top = tk.Frame(card, bg=BG_CARD)
-        top.pack(fill="x", pady=(0, 10))
-        tk.Label(top, text="Αναζήτηση μέλους:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN).pack(side="left")
-        self._s4_sv = tk.StringVar()
-        se4 = tk.Entry(top, textvariable=self._s4_sv,
-                       font=FONT_MAIN, relief="flat", bd=2,
-                       bg="#FFFFFF", fg=FG_DARK,
-                       insertbackground=FG_DARK, width=22)
-        se4.pack(side="left", padx=(6, 6), ipady=4)
-        se4.bind("<KeyRelease>",
-                 lambda e: self._s4_refresh_members(
-                     self._s4_sv.get().strip()))
-        self._s4_combo = ttk.Combobox(
-            top, state="readonly", font=FONT_MAIN, width=30)
-        self._s4_combo.pack(side="left", padx=(0, 14), ipady=3)
-        self._s4_member_map: dict = {}
-        self._make_btn(top, "📋  Εμφάνιση Ιστορικού", self._run_s4,
-                       bg=BG_DARK, fg=FG_LIGHT).pack(side="left")
-
-        self._s4_result = tk.Frame(card, bg=BG_CARD)
-        self._s4_result.pack(fill="x")
-
-    def _s4_refresh_members(self, term=""):
-        members = (self.service.search_members(term) if term
-                   else self.service.list_members())
-        self._s4_member_map = {
-            f"[{m['id']}] {m['full_name']}": m["id"]
-            for m in members
-        }
-        self._s4_combo["values"] = list(self._s4_member_map.keys())
-        if self._s4_combo["values"]:
-            self._s4_combo.current(0)
-
-    def _run_s4(self):
-        sel = self._s4_combo.get()
-        if not sel:
-            return
-        member_id = self._s4_member_map.get(sel)
-        if not member_id:
-            self._s4_refresh_members(self._s4_sv.get().strip())
-            sel = self._s4_combo.get()
-            member_id = self._s4_member_map.get(sel)
-        if not member_id:
-            messagebox.showwarning("Επιλογή", "Παρακαλώ επιλέξτε έγκυρο μέλος.")
-            return
-        self._clear(self._s4_result)
-
-        # Member profile card
-        try:
-            m = self.service.get_member(member_id)
-        except Exception:
-            m = None
-
-        if m:
-            prof = tk.Frame(self._s4_result, bg=BG_CARD, padx=14, pady=8)
-            prof.pack(fill="x", pady=(0, 8))
-            fields = [
-                ("ID",              m.get("id", "")),
-                ("Ονοματεπώνυμο",   m.get("full_name", "")),
-                ("Αρ. Μητρώου",     m.get("registration_number", "")),
-                ("Email",           m.get("email", "")),
-                ("Τηλέφωνο",        m.get("phone", "")),
-                ("Ηλικία",          m.get("age", "")),
-                ("Επάγγελμα",       m.get("profession", "")),
-                ("Εγγραφή",         str(m.get("created_at", ""))[:10]),
-            ]
-            for i, (lbl, val) in enumerate(fields):
-                tk.Label(prof, text=f"{lbl}:", bg=BG_CARD,
-                         fg=FG_MUTED, font=FONT_SMALL,
-                         width=14, anchor="e").grid(
-                    row=i // 4, column=(i % 4) * 2,
-                    sticky="e", padx=(8, 2), pady=2)
-                tk.Label(prof, text=str(val or "—"), bg=BG_CARD,
-                         fg=FG_DARK, font=FONT_SMALL,
-                         anchor="w").grid(
-                    row=i // 4, column=(i % 4) * 2 + 1,
-                    sticky="w", padx=(0, 16), pady=2)
-
-        # Loan history table — uses get_member_loan_history()
-        # Columns returned: id, book_title, book_author, category,
-        #                   loan_date, due_date, return_date, status
-        try:
-            loans = self.service.get_member_loan_history(member_id)
-        except Exception as ex:
-            self._no_data(self._s4_result, str(ex))
-            return
-
         if not loans:
-            self._no_data(self._s4_result, "Δεν υπάρχουν δανεισμοί.")
+            self._no_data(self._s3_result, "Δεν υπάρχουν δανεισμοί.")
             return
 
-        cols  = ("book_title", "book_author", "category",
-                 "loan_date", "due_date", "return_date", "status")
-        heads = [("Τίτλος", 200), ("Συγγραφέας", 150),
-                 ("Κατηγορία", 120), ("Δανεισμός", 100),
-                 ("Λήξη", 90), ("Επιστροφή", 110),
-                 ("Κατάσταση", 100)]
-        frame = self._make_tree(self._s4_result, cols, heads,
-                                height=min(len(loans), 10))
-        tree = frame.winfo_children()[0]
-        tree.tag_configure("active",   background="#FFF9E6",
-                           foreground="#6B4F00")
-        tree.tag_configure("returned", background="#EAF4EA")
-        tree.tag_configure("overdue",  background="#FDECEA")
+        columns = ["Τίτλος", "Συγγραφέας",
+                 "Κατηγορία", "Ημ/νία Δανεισμού",
+                 "Λήξη Δανεισμού", "Ημ/νία Επιστροφής"
+                 ]
+        frame = self._make_tree(self._s3_result, columns)
+        frame.grid(row=0,column=0, sticky="nsew")
+        self._s3_result.grid_rowconfigure(2, weight=1)
+        self._s3_result.grid_columnconfigure(0, weight=1)
 
-        today = date.today().isoformat()
+        tree = frame.winfo_children()[0]
+
         for ln in loans:
             ret  = ln.get("return_date") or ""
             due  = ln.get("due_date", "")
-            stat = ln.get("status", "")
-            tag  = ("returned" if stat == "returned"
-                    else "overdue"
-                    if due and due < today and stat != "returned"
-                    else "active")
-            tree.insert("", "end", tags=(tag,),
+
+            tree.insert("", "end",
                         values=(
                             ln.get("book_title", ""),
                             ln.get("book_author", ""),
                             ln.get("category", ""),    # ← DAL returns "category"
                             ln.get("loan_date", ""),
                             due,
-                            ret or "⏳ Ενεργός",
-                            stat,
+                            ret or "N/A"
                         ))
-        frame.pack(fill="x", pady=(4, 0))
+        tree.grid(row=0,column=0, sticky="nsew")
+
+        autosize_content(tree)
 
     # ================================================================
     # SECTION 5 — Loans per filter (author / age / gender)
     # ================================================================
 
-    def _build_s5(self):
-        card = self._make_card(
-            self.content, row=4,
-            title="5.  Πλήθος δανεισμών ανά φίλτρο",
-            accent=CHART_COLORS[5])
+    def _build_s4(self):
+        self._s4_card, self._s4_content = self.card_create(
+            self.cvs_content_frame,
+            3, "Δανεισμοί ανά Φίλτρο")
 
-        top = tk.Frame(card, bg=BG_CARD)
-        top.pack(fill="x", pady=(0, 10))
+        # Data filter frame
+        _s4_filter_frame = tk.Frame(self._s4_content, bg=BG_CARD)
+        _s4_filter_frame.grid(row=0, column=0, sticky="nsew", pady=(0, 10))
+        _s4_filter_frame.grid_rowconfigure(0, weight=1)
+        for i in range(7):
+            _s4_filter_frame.grid_columnconfigure(i, weight=1 if i == 5 else 0)
 
-        # Date range (required by all three DAL methods)
-        tk.Label(top, text="Από:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN).pack(side="left")
-        self._s5_from = self._date_entry(top, default=DATE_MIN)
-        self._s5_from.pack(side="left", padx=(4, 16))
-        tk.Label(top, text="Έως:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN).pack(side="left")
-        self._s5_to = self._date_entry(top)
-        self._s5_to.pack(side="left", padx=(4, 20))
+        # Date filters
+        _s4_from_lbl = tk.Label(
+            _s4_filter_frame,
+            text="Από:",
+            bg=BG_CARD,
+            fg=FG_MUTED,
+            font=FONT_MAIN)
+        _s4_from_lbl.grid(row=0, column=0, padx=10, pady=10, sticky='nsew')
+        self._s4_from = self.date_entry(_s4_filter_frame)
+        self._s4_from.grid(row=0, column=1, padx=(5, 10))
 
-        tk.Label(top, text="Εμφάνιση κατά:", bg=BG_CARD,
-                 fg=FG_MUTED, font=FONT_MAIN).pack(side="left")
-        self._s5_filter = tk.StringVar(value="Συγγραφέας")
-        ttk.Combobox(top, textvariable=self._s5_filter,
-                     values=["Συγγραφέας", "Ηλικία", "Φύλο"],
-                     state="readonly", font=FONT_MAIN,
-                     width=16).pack(side="left", padx=(6, 16), ipady=3)
-        self._make_btn(top, "📊  Γράφημα", self._run_s5,
-                       bg=CHART_COLORS[5], fg="#FFFFFF").pack(side="left")
+        _s4_to_lbl = tk.Label(
+            _s4_filter_frame,
+            text="Έως:",
+            bg=BG_CARD,
+            fg=FG_MUTED,
+            font=FONT_MAIN)
+        _s4_to_lbl.grid(row=0, column=2, padx=10, pady=10, sticky='nsew')
+        self._s4_to = self.date_entry(_s4_filter_frame)
+        self._s4_to.grid(row=0, column=3, padx=(5, 10))
 
-        self._s5_result = tk.Frame(card, bg=BG_CARD)
-        self._s5_result.pack(fill="x", pady=(0, 10))
+        _s4_member_lbl = tk.Label(
+            _s4_filter_frame,
+            text="Μέλος:",
+            bg=BG_CARD,
+            fg=FG_MUTED,
+            font=FONT_MAIN)
+        _s4_member_lbl.grid(row=0, column=4, padx=10, pady=10, sticky='nsew')
+        self._s4_combo = ttk.Combobox(
+            _s4_filter_frame,
+            state="readonly",
+            font=FONT_MAIN,
+            width=28,
+            values=["Συγγραφέας", "Ηλικία", "Φύλο"],
+            style="CustomCombobox.TCombobox",
+        )
+        self._s4_combo.grid(row=0, column=5, padx=10, pady=10, sticky='w')
 
-    def _run_s5(self):
-        d_from = self._s5_from.get().strip()
-        d_to   = self._s5_to.get().strip()
+        # search btn
+        self._s4_search_btn = self.make_btn(parent=_s4_filter_frame, text="Αναζήτηση", command=self._run_s4)
+        self._s4_search_btn.grid(row=0, column=6, padx=10, pady=10, sticky='nsw')
+
+        self._s4_result = tk.Frame(self._s4_content, bg=BG_CARD)
+        self._s4_result.grid(row=1, column=0, sticky="nsew")
+
+
+    def _run_s4(self):
+        self._s4_result.grid()
+        d_from = self._s4_from.get().strip()
+        d_to   = self._s4_to.get().strip()
+        flt = self._s4_combo.get()
         if not self._valid_range(d_from, d_to):
+            return
+        if not flt:
+            messagebox.showwarning("Επιλογή", "Παρακαλώ επιλέξτε φίλτρο.")
             return
 
         date_range = DateRangeDTO(date_from=d_from, date_to=d_to)
-        flt        = self._s5_filter.get()
-        self._clear(self._s5_result)
+        self._clear(self._s4_result)
 
         try:
             if flt == "Συγγραφέας":
@@ -551,51 +515,57 @@ class Statistics(tk.Frame):
                 title = "Πλήθος δανεισμών ανά Φύλο"
                 pairs = [(r["gender"], r["total"]) for r in rows]
         except Exception as ex:
-            self._no_data(self._s5_result, str(ex))
+            self._no_data(self._s4_result, str(ex))
             return
 
         if not pairs:
-            self._no_data(self._s5_result, "Δεν βρέθηκαν δεδομένα.")
+            self._no_data(self._s4_result, "Δεν βρέθηκαν δεδομένα.")
             return
 
-        self._draw_bar_h(self._s5_result, pairs, title)
+        self._draw_bar_h(self._s4_result, pairs, title)
 
     # ================================================================
     # Matplotlib helpers
     # ================================================================
 
-    def _draw_area(self, parent, x_labels, y_values, title, ylabel=""):
+    def _draw_area(self, parent, x_labels, y_values):
         """Straight-line filled area chart (light theme)."""
         x_pos = list(range(len(x_labels)))
-        fig, ax = plt.subplots(figsize=(8, 3), facecolor=MPL_BG)
+        fig, ax = plt.subplots(figsize=(8, 3),facecolor=MPL_BG)
         ax.set_facecolor(MPL_BG)
-        for sp in ax.spines.values():
-            sp.set_visible(False)
+
+        ax.spines.right.set_visible(False)
+        ax.spines.top.set_visible(False)
+        ax.spines.left.set_linewidth(0.5)
+        ax.spines.bottom.set_linewidth(0.5)
+        ax.spines.bottom.set_color(BG_DARK)
+        ax.spines.left.set_color(BG_DARK)
 
         ax.plot(x_pos, y_values,
                 color=CHART_COLORS[0], linewidth=2,
-                marker="o", markersize=5,
-                markerfacecolor=CHART_COLORS[0], linestyle="-")
+                linestyle="-")
         ax.fill_between(x_pos, y_values, alpha=0.20,
-                        color=CHART_COLORS[0])
+                        color=ACCENT)
 
         rotation = 45 if len(x_labels) > 6 else 0
         ax.set_xticks(x_pos)
         ax.set_xticklabels(x_labels, rotation=rotation,
                            ha="right" if rotation else "center",
                            fontsize=8, color=MPL_TEXT)
-        ax.tick_params(axis="y", colors=MPL_TEXT, labelsize=8)
-        ax.set_ylabel(ylabel, fontsize=9, color=FG_MUTED)
+        ax.tick_params(axis="y", colors=MPL_TEXT, labelsize=10)
+        ax.yaxis.set_ticks(np.arange(0,max(y_values)+5,1))
+
+        ax.set_ylim(bottom=0)
+        ax.set_xlim(left=0,right=x_pos[-1])
+        ax.yaxis.label.set_visible(False)
+        ax.xaxis.label.set_visible(False)
+
         ax.yaxis.grid(True, color=MPL_GRID,
-                      linestyle="--", linewidth=0.5, alpha=0.7)
-        for xi, yi in zip(x_pos, y_values):
-            ax.text(xi, yi + 0.05, str(yi),
-                    ha="center", va="bottom",
-                    fontsize=8, color=MPL_TEXT, fontweight="bold")
-        ax.set_title(title, fontsize=11, color=MPL_TEXT,
-                     fontweight="bold", pad=10)
-        fig.tight_layout(pad=1.4)
+                      linestyle="-", linewidth=0.5, alpha=0.7)
+
+        fig.tight_layout(pad=1)
         self._embed(parent, fig)
+
 
     def _draw_bar_h(self, parent, rows, title):
         """Horizontal bar chart (light theme)."""
@@ -606,155 +576,189 @@ class Statistics(tk.Frame):
 
         fig, ax = plt.subplots(figsize=(8, height), facecolor=MPL_BG)
         ax.set_facecolor(MPL_BG)
-        for sp in ax.spines.values():
-            sp.set_visible(False)
+
+        ax.spines.right.set_visible(False)
+        ax.spines.top.set_visible(False)
+        ax.spines.left.set_linewidth(0.5)
+        ax.spines.bottom.set_linewidth(0.5)
+        ax.spines.bottom.set_color(BG_DARK)
+        ax.spines.left.set_color(BG_DARK)
 
         colors = [CHART_COLORS[i % len(CHART_COLORS)] for i in range(n)]
-        bars   = ax.barh(labels[::-1], values[::-1],
+        ax.barh(labels[::-1], values[::-1],
                          color=colors[::-1], height=0.6)
 
-        ax.set_xlabel("Δανεισμοί", fontsize=9, color=FG_MUTED)
+        ax.yaxis.label.set_visible(False)
+        ax.xaxis.label.set_visible(False)
+
         ax.tick_params(colors=MPL_TEXT, labelsize=9)
+        ax.xaxis.set_ticks(np.arange(0, max(values) + 2, 1))
         ax.xaxis.grid(True, color=MPL_GRID,
-                      linestyle="--", linewidth=0.5, alpha=0.7)
-        for bar, val in zip(bars, values[::-1]):
-            ax.text(bar.get_width() + 0.05,
-                    bar.get_y() + bar.get_height() / 2,
-                    str(val), va="center", ha="left",
-                    fontsize=9, color=MPL_TEXT, fontweight="bold")
+                      linestyle="-", linewidth=0.5, alpha=0.7)
+
         ax.set_title(title, fontsize=11, color=MPL_TEXT,
-                     fontweight="bold", pad=10)
+                     fontweight="bold", loc='center', pad=10)
         fig.tight_layout(pad=1.4)
         self._embed(parent, fig)
         
-    def _draw_donut(self, parent, rows, title):
+    def _draw_donut(self, parent, rows):
         """Donut chart (light theme)."""
         labels = [str(r[0]) for r in rows]
         values = [r[1]      for r in rows]
         n      = len(rows)
         colors = [CHART_COLORS[i % len(CHART_COLORS)] for i in range(n)]
 
-        fig, ax = plt.subplots(figsize=(7, 4), facecolor=MPL_BG)
+        fig, ax = plt.subplots(figsize=(8,4), facecolor=MPL_BG)
         ax.set_facecolor(MPL_BG)
 
         wedges, texts, autotexts = ax.pie(
             values,
+            radius=1.5,
             labels=None,
             colors=colors,
-            autopct=lambda pct: f"{pct:.1f}%" if pct > 4 else "",
-            pctdistance=0.78,
+            autopct=lambda pct: f"{pct:.1f}%" if pct > 8 else "",
+            pctdistance=0.75,
             startangle=90,
-            wedgeprops={"width": 0.52,          # donut hole width
+            counterclock=False,
+            wedgeprops={"width": 0.7,          # donut hole width
                         "edgecolor": MPL_BG,
                         "linewidth": 2},
-        )
+            )
 
         for at in autotexts:
-            at.set_fontsize(8)
+            at.set_fontsize(10)
             at.set_color(MPL_BG)
             at.set_fontweight("bold")
 
+
         # Centre label — total loans
         total = sum(values)
-        ax.text(0, 0.08, str(total),
+        ax.text(0, 0.1, str(total),
                 ha="center", va="center",
                 fontsize=18, fontweight="bold", color=MPL_TEXT)
-        ax.text(0, -0.22, "δανεισμοί",
+        ax.text(0, -0.1, "δανεισμοί",
                 ha="center", va="center",
-                fontsize=8, color=FG_MUTED)
+                fontsize=12, color=FG_MUTED)
 
         # Legend on the right
-        ax.legend(
-            wedges, [f"{l}  ({v})" for l, v in zip(labels, values)],
+        legend=ax.legend(
+            wedges, [f"{l} ({val/total*100:.1f}%)" for l,val in zip(labels,values)],
             loc="center left",
-            bbox_to_anchor=(1.02, 0.5),
-            fontsize=9,
-            frameon=False,
+            bbox_to_anchor=(1.2, 0.5),
+            fontsize=10,
             labelcolor=MPL_TEXT,
         )
 
-        ax.set_title(title, fontsize=11, color=MPL_TEXT,
-                     fontweight="bold", pad=14)
-        fig.tight_layout(pad=1.4)
         self._embed(parent, fig)
 
     def _embed(self, parent, fig):
         canvas = FigureCanvasTkAgg(fig, master=parent)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill="x", pady=(6, 0))
+        widget = (canvas.get_tk_widget())
+        widget.configure(bg=MPL_BG)
+        widget.pack(fill="both", expand=True)
         plt.close(fig)
 
     # ================================================================
     # Widget factories
     # ================================================================
 
-    def _make_card(self, parent, row, title, accent=ACCENT):
-        outer = tk.Frame(parent, bg=BG_MAIN)
-        outer.grid(row=row, column=0, sticky="ew", pady=(0, 18))
-        outer.grid_columnconfigure(1, weight=1)
+    # Stat Card function
+    def card_create(self, parent, row, title):
+        container = tk.Frame(
+            parent,
+            bd=0,
+            bg=BG_CARD,
+            padx=10,
+            pady=10
+        )
+        container.grid(row=row, column=0, padx=15, pady=10, sticky='nsew')
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_rowconfigure(1, weight=1)
+        container.grid_columnconfigure(0, weight=1)
 
-        # Coloured left accent bar
-        tk.Frame(outer, bg=accent, width=5).grid(
-            row=0, column=0, rowspan=2, sticky="ns")
+        # title button(toggle)
+        title_lbl = tk.Label(
+            container,
+            anchor="center",
+            bg=BG_CARD,
+            fg=FG_MUTED,
+            bd=0,
+            font=FONT_SUBHEADER_BOLD,
+            text=title,
+            cursor="hand2"
+        )
+        title_lbl.grid(row=0, column=0, sticky='w', padx=15, pady=10)
 
-        hdr = tk.Frame(outer, bg=BG_DARK, padx=14, pady=10)
-        hdr.grid(row=0, column=1, sticky="ew")
-        tk.Label(hdr, text=title, bg=BG_DARK, fg=FG_LIGHT,
-                 font=FONT_SEC, anchor="w").pack(fill="x")
+        # frame for content
+        content_frame = tk.Frame(container, bg=BG_CARD)
+        content_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        content_frame.grid_columnconfigure(0, weight=1)
+        content_frame.grid_remove()
 
-        body = tk.Frame(outer, bg=BG_CARD, padx=16, pady=14)
-        body.grid(row=1, column=1, sticky="ew")
-        body.grid_columnconfigure(0, weight=1)
-        return body
+        # toggle behavior
+        title_lbl.bind("<Button-1>", lambda e: self.toggle_chart(content_frame))
 
-    def _date_entry(self, parent, default=None):
-        e = tk.Entry(parent, font=FONT_MAIN, relief="flat", bd=2,
-                     bg="#FFFFFF", fg=FG_DARK,
-                     insertbackground=FG_DARK, width=11)
+        return container, content_frame
+
+    def date_entry(self,parent,default=None):
+        e = ttk.Entry(
+            parent,
+            font=FONT_MAIN,
+            width=10,
+            style="CustomEntry.TEntry",
+            exportselection=False
+            )
         e.insert(0, default if default is not None else TODAY)
         return e
 
-    def _make_tree(self, parent, cols, heads, height=6):
-        sname = f"S{abs(id(parent)) % 99999}.Treeview"
-        sty   = ttk.Style()
-        sty.configure(sname,
-                      background=BG_CARD, fieldbackground=BG_CARD,
-                      foreground=FG_DARK, font=FONT_SMALL,
-                      rowheight=28, borderwidth=0)
-        sty.configure(f"{sname}.Heading",
-                      background=BG_DARK, foreground=FG_LIGHT,
-                      font=FONT_BOLD, relief="flat")
-        sty.map(sname,
-                background=[("selected", BG_DARKER)],
-                foreground=[("selected", ACCENT)])
+    def _make_tree(self, parent, columns):
+        container = tk.Frame(parent, bg=BG_CARD)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_rowconfigure(1, weight=0)
+        container.grid_columnconfigure(0, weight=1)
+        container.grid_columnconfigure(1, weight=0)
 
-        frame = tk.Frame(parent, bg=BG_CARD)
-        frame.grid_columnconfigure(0, weight=1)
+        tree = ttk.Treeview(container, columns=columns, show="headings",
+                            selectmode="none",style="Custom.Treeview",
+                            height=6)
+        tree.grid(row=0, column=0, sticky="nsew", padx=(0, 5), pady=(0, 5))
 
-        tree = ttk.Treeview(frame, columns=cols, show="headings",
-                             style=sname, height=height)
-        for col, (h, w) in zip(cols, heads):
-            tree.heading(col, text=h)
-            tree.column(col, width=w, anchor="w")
+        for col in columns:
+            tree.heading(col, text=col,anchor="w")
+            tree.column(
+                col,
+                anchor="w",
+                width=120,
+                minwidth=120,
+                stretch=True,
+                )
 
-        sb = ttk.Scrollbar(frame, orient="v", command=tree.yview)
-        tree.configure(yscrollcommand=sb.set)
-        tree.grid(row=0, column=0, sticky="ew")
-        sb.grid(row=0, column=1, sticky="ns")
-        return frame
+        v_sb = ttk.Scrollbar(container, orient="vertical",
+                             command=tree.yview,style="Vertical.TScrollbar")
+        tree.configure(yscrollcommand=v_sb.set)
+        v_sb.grid(row=0, column=1, sticky="ns")
 
-    @staticmethod
-    def _make_btn(parent, text, command, bg=BG_DARK, fg=FG_LIGHT):
-        btn = tk.Button(parent, text=text, command=command,
-                        bg=bg, fg=fg,
-                        activebackground=BG_DARKER,
-                        activeforeground=ACCENT,
-                        relief="flat", font=("Segoe UI", 11),
-                        padx=14, pady=5,
-                        cursor="hand2",
-                        bd=0, highlightthickness=0)
-        btn.bind("<Enter>", lambda e: btn.config(bg=BG_DARKER))
-        btn.bind("<Leave>", lambda e: btn.config(bg=bg))
+        h_sb = ttk.Scrollbar(
+            container,
+            orient='horizontal',
+            command=tree.xview,
+            style="Horizontal.TScrollbar"
+        )
+        h_sb.set(0.2, 0.5)
+        h_sb.grid(row=1, column=0, columnspan=2, sticky='we', padx=(15, 0))
+        tree.config(xscrollcommand=h_sb.set)
+
+        return container
+
+    def make_btn(self,parent, text, command):
+        btn = ttk.Button(
+                parent,
+                text=text,
+                command=command,
+                width=18,
+                style="CustomButton.TButton",
+                cursor='hand2'
+                )
         return btn
 
     # ================================================================
@@ -786,8 +790,38 @@ class Statistics(tk.Frame):
                 "Μορφή ημερομηνίας",
                 "Χρησιμοποιήστε τη μορφή ΕΕΕΕ-ΜΜ-ΗΗ (π.χ. 2026-01-01).")
             return False
-        
-                #clear changes
+
+    def toggle_chart(self, frame):
+        if frame.winfo_ismapped():
+            frame.grid_remove()
+        else:
+            frame.grid()
+
+    def reset_section(self,combo,from_entry,to_entry,result,content):
+        getattr(self,combo).set("")
+        if from_entry:
+            getattr(self, from_entry).delete(0, "end")
+            getattr(self, from_entry).insert(0, TODAY)
+
+        if to_entry:
+            getattr(self, to_entry).delete(0, "end")
+            getattr(self, to_entry).insert(0, TODAY)
+
+        self._clear(getattr(self, result))
+        getattr(self, result).grid_remove()
+        if hasattr(self, "toggle_chart") and getattr(self, content).winfo_ismapped():
+            self.toggle_chart(getattr(self, content))
+
+    def _on_mousewheel(self, e):
+        start, end = self.cvs.yview()
+
+        #if there is no scrollable area
+        if start == 0.0 and end == 1.0:
+            return
+
+        self.cvs.yview_scroll(-1 * (e.delta // 120), "units")
+
+    #clear changes
     def reset(self):
         """Called when the page becomes visible. Refresh member combos
         so newly added/removed members appear in the dropdowns."""
@@ -795,3 +829,12 @@ class Statistics(tk.Frame):
             self.on_show()
         except Exception:
             pass
+        sections = [
+            ("_s1_combo", "_s1_from", "_s1_to", "_s1_result", "_s1_content"),
+            ("_s2_combo", "_s2_from", "_s2_to", "_s2_result", "_s2_content"),
+            ("_s3_combo", None, None, "_s3_result", "_s3_content"),
+            ("_s4_combo", "_s4_from", "_s4_to", "_s4_result", "_s4_content"),
+        ]
+
+        for args in sections:
+            self.reset_section(*args)

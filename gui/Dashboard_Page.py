@@ -239,7 +239,7 @@ class Dashboard(tk.Frame):
 
         figure_plot.set_facecolor(MPL_BG)
         figure_plot.fill_between(dates, counts, alpha=0.20,
-                        color=CHART_COLORS[1])
+                        color=ACCENT)
 
         figure_plot.set_title(
             'Δανεισμοί (τελευταίες 7 ημέρες)',

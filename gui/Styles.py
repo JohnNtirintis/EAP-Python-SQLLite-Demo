@@ -24,9 +24,8 @@ FONT_SEC   = ("Segoe UI", 13, "bold")
 
 # ── Chart palette (light-mode friendly) ─────────────────────────
 CHART_COLORS = [
-    "#01696f", "#00D5E4", "#da7101", "#437a22",
-    "#006494", "#7a39bb", "#a12c7b", "#a13544",
-    "#d19900", "#0c4e54", "#2e5c10", "#275f8e",
+    "#059CA7", "#5A85C0", "#A86EA5", "#BA6B68",
+    "#947F42", "#4F8F5E"
 ]
 
 # ── Matplotlib surfaces (light theme) ─────────────────────────
