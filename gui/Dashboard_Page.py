@@ -7,6 +7,7 @@ from collections import Counter
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
+import numpy as np
 
 from gui.Styles import *
 
@@ -212,19 +213,33 @@ class Dashboard(tk.Frame):
         figure = plt.Figure(figsize=(5, 1), dpi=100, frameon=False)
         figure_plot = figure.add_subplot(1, 1, 1)
 
+        dataframe.plot(
+            x='dates', y='y',
+            kind='line', legend=False,
+            ax=figure_plot, linewidth=2, linestyle='-',
+            color=CHART_COLORS[0]
+        )
+
         figure_plot.spines.right.set_visible(False)
         figure_plot.spines.top.set_visible(False)
         figure_plot.spines.left.set_linewidth(0.5)
         figure_plot.spines.bottom.set_linewidth(0.5)
         figure_plot.spines.bottom.set_color(BG_DARK)
         figure_plot.spines.left.set_color(BG_DARK)
-        figure_plot.tick_params('both', colors=BG_DARK)
+        figure_plot.tick_params('both', colors=MPL_TEXT)
 
         figure_plot.xaxis.label.set_visible(False)
         figure_plot.yaxis.label.set_visible(False)
+        figure_plot.axis(ymin=0,xmin=0)
 
-        figure_plot.axes.grid(axis='y', color=MPL_GRID, linewidth=0.5)
+        figure_plot.yaxis.grid(True, color=MPL_GRID,linestyle="-",
+                               linewidth=0.5,alpha=0.7)
+        figure_plot.yaxis.set_ticks(np.arange(0, max(counts) + 5, 1))
         figure.subplots_adjust(top=0.75, bottom=0.15, left=0.08, right=0.95)
+
+        figure_plot.set_facecolor(MPL_BG)
+        figure_plot.fill_between(dates, counts, alpha=0.20,
+                        color=CHART_COLORS[1])
 
         figure_plot.set_title(
             'Δανεισμοί (τελευταίες 7 ημέρες)',
@@ -238,19 +253,11 @@ class Dashboard(tk.Frame):
             loc='left',
             pad=10,
         )
-        figure_plot.set_facecolor(MPL_BG)
 
         line_graph = FigureCanvasTkAgg(figure, self._figure_container)
         widget = line_graph.get_tk_widget()
         widget.configure(bg=MPL_BG)
         widget.pack(fill='both', expand=True)
-
-        dataframe.plot(
-            x='dates', y='y',
-            kind='line', legend=False,
-            ax=figure_plot, linewidth=2, linestyle='-',
-            color=ACCENT
-        )
 
     # =========================================
     # Refresh everything from the service
