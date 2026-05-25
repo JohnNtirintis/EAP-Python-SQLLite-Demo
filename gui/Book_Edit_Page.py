@@ -13,6 +13,8 @@ class BookEdit(tk.Frame):
 
         #currently edited book id (None for create mode)
         self.selected_book_id = None
+        # keep total copies for edits so availability changes do not alter the total
+        self._current_total_copies = None
         #map of display category name -> id, populated on every reload
         self._cat_name_to_id = {}
 
@@ -197,6 +199,7 @@ class BookEdit(tk.Frame):
         self.category_var.set("")
         self.copies_var.set(1)
         self.selected_book_id = None
+        self._current_total_copies = None
         self.title_var.set("Προσθήκη Βιβλίου")
         self.edit_button.config(text="ΠΡΟΣΘΗΚΗ")
         self.delete_button.state(['disabled'])
@@ -218,9 +221,13 @@ class BookEdit(tk.Frame):
         self.entries["isbn"].insert(0, book.get("isbn", "") or "")
         self.category_var.set(book.get("category_name", "") or "")
         try:
-            self.copies_var.set(int(book.get("total_copies", 1) or 1))
+            self._current_total_copies = int(book.get("total_copies", 0) or 0)
         except (TypeError, ValueError):
-            self.copies_var.set(1)
+            self._current_total_copies = None
+        try:
+            self.copies_var.set(int(book.get("available_copies", 0) or 0))
+        except (TypeError, ValueError):
+            self.copies_var.set(0)
         self.title_var.set("Ενημέρωση Βιβλίου")
         self.edit_button.config(text="ΕΝΗΜΕΡΩΣΗ")
         self.delete_button.state(['!disabled'])
@@ -273,16 +280,26 @@ class BookEdit(tk.Frame):
                 return
 
         try:
-            total_copies = int(self.copies_var.get())
+            copies_value = int(self.copies_var.get())
         except (TypeError, ValueError, tk.TclError):
             messagebox.showwarning("Άκυρη τιμή",
                                    "Το απόθεμα πρέπει να είναι ακέραιος.")
             return
 
-        if total_copies <= 0:
-            messagebox.showwarning("Άκυρη τιμή",
-                                   "Το απόθεμα πρέπει να είναι θετικός ακέραιος.")
-            return
+        if self.selected_book_id is None:
+            if copies_value <= 0:
+                messagebox.showwarning("Άκυρη τιμή",
+                                       "Το απόθεμα πρέπει να είναι θετικός ακέραιος.")
+                return
+        else:
+            if copies_value < 0:
+                messagebox.showwarning("Άκυρη τιμή",
+                                       "Το απόθεμα πρέπει να είναι μη αρνητικός ακέραιος.")
+                return
+
+        total_copies = copies_value if self.selected_book_id is None else (
+            self._current_total_copies if self._current_total_copies is not None else copies_value
+        )
 
         kwargs = dict(
             title=title,
@@ -293,16 +310,21 @@ class BookEdit(tk.Frame):
             published_year=year,
         )
 
-        try:
-            if self.selected_book_id is None:
+        if self.selected_book_id is None:
+            try:
                 self.service.add_book(**kwargs)
                 messagebox.showinfo("Επιτυχία", "Το βιβλίο προστέθηκε.")
-            else:
+            except Exception as e:
+                messagebox.showerror("Σφάλμα", str(e))
+                return
+        else:
+            kwargs["available_copies"] = copies_value
+            try:
                 self.service.update_book(self.selected_book_id, **kwargs)
                 messagebox.showinfo("Επιτυχία", "Το βιβλίο ενημερώθηκε.")
-        except Exception as e:
-            messagebox.showerror("Σφάλμα", str(e))
-            return
+            except Exception as e:
+                messagebox.showerror("Σφάλμα", str(e))
+                return
 
         self.reset()
         self.app.change_page("Κατάλογος Βιβλίων")
