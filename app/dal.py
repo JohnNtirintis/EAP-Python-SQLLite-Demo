@@ -279,14 +279,22 @@ class LibraryDAL:
             if not book:
                 raise ValueError("Book does not exist.")
 
-            old_total = int(book["total_copies"])
-            old_available = int(book["available_copies"])
-            borrowed_count = old_total - old_available
+            borrowed_row = connection.execute(
+                "SELECT COUNT(*) AS cnt FROM loans WHERE book_id = ? AND status = 'borrowed';",
+                (book_id,),
+            ).fetchone()
+            borrowed_count = int(borrowed_row["cnt"])
 
-            if dto.total_copies < borrowed_count:
+            new_total = int(dto.total_copies)
+            if new_total < borrowed_count:
                 raise ValueError("Total copies cannot be less than currently borrowed copies.")
 
-            new_available = dto.total_copies - borrowed_count
+            if dto.available_copies is None:
+                new_available = min(int(book["available_copies"]), new_total)
+            else:
+                new_available = int(dto.available_copies)
+                if new_available > new_total:
+                    raise ValueError("Available copies cannot exceed total copies.")
 
             connection.execute(
                 "UPDATE books SET title = ?, author = ?, isbn = ?, category_id = ?, total_copies = ?, available_copies = ?, published_year = ? "
@@ -296,7 +304,7 @@ class LibraryDAL:
                     dto.author,
                     dto.isbn,
                     dto.category_id,
-                    dto.total_copies,
+                    new_total,
                     new_available,
                     dto.published_year,
                     book_id,

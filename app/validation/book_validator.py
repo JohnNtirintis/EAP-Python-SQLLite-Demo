@@ -7,6 +7,7 @@ from app.validation.rules import (
     is_non_empty,
     is_valid_isbn,
     is_positive_integer,
+    is_non_negative_integer,
 )
 
 
@@ -63,6 +64,12 @@ def validate_update_book(dto) -> None:
 
     if not is_positive_integer(dto.total_copies):
         raise BookValidationError("Total copies must be a positive integer.")
+
+    if dto.available_copies is not None:
+        if not is_non_negative_integer(dto.available_copies):
+            raise BookValidationError("Available copies must be a non-negative integer.")
+        if int(dto.available_copies) > int(dto.total_copies):
+            raise BookValidationError("Available copies cannot exceed total copies.")
 
     if dto.published_year is not None:
         try:

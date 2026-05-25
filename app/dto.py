@@ -106,6 +106,7 @@ class UpdateBookDTO:
     category_id: int
     total_copies: int
     published_year: Optional[int]
+    available_copies: Optional[int] = None
 
 
 @dataclass
