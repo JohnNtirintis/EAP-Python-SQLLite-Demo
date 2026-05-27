@@ -5,7 +5,10 @@ from datetime import date, datetime,timedelta
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.ticker import MultipleLocator, NullLocator
+import mplcursors
 import numpy as np
+
 
 from app.dto import DateRangeDTO
 
@@ -546,12 +549,29 @@ class Statistics(tk.Frame):
                 linestyle="-")
         ax.fill_between(x_pos, y_values, alpha=0.20,
                         color=ACCENT)
+        points = ax.scatter(
+            x_pos, y_values,
+            color=CHART_COLORS[0],
+            s=1,  # μέγεθος marker
+        )
 
         rotation = 45 if len(x_labels) > 6 else 0
         ax.set_xticks(x_pos)
         ax.set_xticklabels(x_labels, rotation=rotation,
                            ha="right" if rotation else "center",
                            fontsize=8, color=MPL_TEXT)
+        if len(x_labels) > 30:
+            ax.xaxis.set_major_locator(MultipleLocator(30))
+            ax.xaxis.set_minor_locator(MultipleLocator(1) if len(x_labels) <90 else NullLocator())
+
+        #annotate x labels on hover over markers
+        cursor = mplcursors.cursor(points, hover=2)
+        @cursor.connect("add")
+        def on_add(sel):
+            idx = int(sel.index)
+            sel.annotation.set_text(x_labels[idx])
+            sel.annotation.get_bbox_patch().set(fc=BG_MAIN, alpha=0.5)
+
         ax.tick_params(axis="y", colors=MPL_TEXT, labelsize=10)
         ax.yaxis.set_ticks(np.arange(0,max(y_values)+5,1))
 
