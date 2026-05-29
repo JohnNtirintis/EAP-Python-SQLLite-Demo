@@ -14,10 +14,10 @@ def validate_new_loan(dto) -> None:
     - member_id and book_id are present
     """
     if not dto.member_id:
-        raise LoanValidationError("A valid member must be selected.")
+        raise LoanValidationError("Πρέπει να επιλεγεί έγκυρο μέλος.")
 
     if not dto.book_id:
-        raise LoanValidationError("A valid book must be selected.")
+        raise LoanValidationError("Πρέπει να επιλεγεί έγκυρο βιβλίο.")
 
 
 def validate_return(loan: dict) -> None:
@@ -26,9 +26,9 @@ def validate_return(loan: dict) -> None:
     loan is a plain dict — uses bracket access, NOT dot notation.
     """
     if loan is None:
-        raise LoanValidationError("Loan record not found.")
+        raise LoanValidationError("Η εγγραφή δανεισμού δεν βρέθηκε.")
 
     if loan["status"] != "borrowed":
         raise LoanValidationError(
-            "This loan has already been returned and cannot be processed again."
+            "Αυτός ο δανεισμός έχει ήδη επιστραφεί και δεν μπορεί να επεξεργαστεί ξανά."
         )
