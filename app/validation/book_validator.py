@@ -18,31 +18,31 @@ def validate_new_book(dto) -> None:
     dto: BookDTO
     """
     if not is_non_empty(dto.title):
-        raise BookValidationError("Book title is required.")
+        raise BookValidationError("Ο τίτλος του βιβλίου είναι απαραίτητος.")
 
     if not is_non_empty(dto.author):
-        raise BookValidationError("Author name is required.")
+        raise BookValidationError("Το όνομα συγγραφέα είναι απαραίτητο.")
 
     if not is_valid_isbn(dto.isbn):
         raise BookValidationError(
-            f"Invalid ISBN '{dto.isbn}'. Must be 10-17 characters."
+            f"Μη έγκυρο ISBN '{dto.isbn}'. Πρέπει να έχει 10–17 χαρακτήρες."
         )
 
     if not dto.category_id:
-        raise BookValidationError("A valid category must be selected.")
+        raise BookValidationError("Πρέπει να επιλεγεί έγκυρη κατηγορία.")
 
     if not is_positive_integer(dto.total_copies):
-        raise BookValidationError("Total copies must be a positive integer.")
+        raise BookValidationError("Ο συνολικός αριθμός αντιτύπων πρέπει να είναι θετικός ακέραιος.")
 
     if dto.published_year is not None:
         try:
             year = int(dto.published_year)
             if not (1000 <= year <= 9999):
                 raise BookValidationError(
-                    "Published year must be a valid 4-digit year."
+                    "Το έτος έκδοσης πρέπει να είναι έγκυρο τετραψήφιο έτος."
                 )
         except (TypeError, ValueError):
-            raise BookValidationError("Published year must be a valid integer.")
+            raise BookValidationError("Το έτος έκδοσης πρέπει να είναι έγκυρος ακέραιος αριθμός.")
 
 
 def validate_update_book(dto) -> None:
@@ -52,31 +52,31 @@ def validate_update_book(dto) -> None:
     dto: BookDTO
     """
     if not is_non_empty(dto.title):
-        raise BookValidationError("Book title cannot be blank.")
+        raise BookValidationError("Ο τίτλος του βιβλίου δεν μπορεί να είναι κενός.")
 
     if not is_non_empty(dto.author):
-        raise BookValidationError("Author name cannot be blank.")
+        raise BookValidationError("Το όνομα συγγραφέα δεν μπορεί να είναι κενό.")
 
     if not is_valid_isbn(dto.isbn):
         raise BookValidationError(
-            f"Invalid ISBN '{dto.isbn}'. Must be 10-17 characters."
+            f"Μη έγκυρο ISBN '{dto.isbn}'. Πρέπει να έχει 10–17 χαρακτήρες."
         )
 
     if not is_positive_integer(dto.total_copies):
-        raise BookValidationError("Total copies must be a positive integer.")
+        raise BookValidationError("Ο συνολικός αριθμός αντιτύπων πρέπει να είναι θετικός ακέραιος.")
 
     if dto.available_copies is not None:
         if not is_non_negative_integer(dto.available_copies):
-            raise BookValidationError("Available copies must be a non-negative integer.")
+            raise BookValidationError("Τα διαθέσιμα αντίτυπα πρέπει να είναι μη αρνητικός ακέραιος.")
         if int(dto.available_copies) > int(dto.total_copies):
-            raise BookValidationError("Available copies cannot exceed total copies.")
+            raise BookValidationError("Τα διαθέσιμα αντίτυπα δεν μπορούν να υπερβαίνουν τα συνολικά.")
 
     if dto.published_year is not None:
         try:
             year = int(dto.published_year)
             if not (1000 <= year <= 9999):
                 raise BookValidationError(
-                    "Published year must be a valid 4-digit year."
+                    "Το έτος έκδοσης πρέπει να είναι έγκυρο τετραψήφιο έτος."
                 )
         except (TypeError, ValueError):
-            raise BookValidationError("Published year must be a valid integer.")
+            raise BookValidationError("Το έτος έκδοσης πρέπει να είναι έγκυρος ακέραιος αριθμός.")
