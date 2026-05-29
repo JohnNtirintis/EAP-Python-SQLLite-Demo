@@ -19,23 +19,23 @@ def validate_new_member(dto) -> None:
     dto: MemberDTO
     """
     if not is_non_empty(dto.full_name):
-        raise MemberValidationError("Full name is required.")
+        raise MemberValidationError("Απαιτείται πλήρες όνομα.")
 
     if not is_non_empty(dto.registration_number):
-        raise MemberValidationError("Registration number is required.")
+        raise MemberValidationError("Απαιτείται αριθμός μητρώου.")
 
     if dto.email and not is_valid_email(dto.email):
-        raise MemberValidationError(f"Invalid email format: '{dto.email}'.")
+        raise MemberValidationError(f"Μη έγκυρη μορφή email: '{dto.email}'.")
 
     if dto.phone and not is_valid_phone(dto.phone):
-        raise MemberValidationError(f"Invalid phone number: '{dto.phone}'.")
+        raise MemberValidationError(f"Μη έγκυρος αριθμός τηλεφώνου: '{dto.phone}'.")
 
     if dto.age is not None and not is_valid_age(dto.age):
-        raise MemberValidationError("Age must be a non-negative integer.")
+        raise MemberValidationError("Η ηλικία πρέπει να είναι μη αρνητικός ακέραιος.")
 
     if not is_valid_gender(dto.gender):
         raise MemberValidationError(
-            f"Invalid gender '{dto.gender}'. Must be 'Male', 'Female', 'Other', or None."
+            f"Μη έγκυρο φύλο '{dto.gender}'. Επιτρέπονται: 'Male', 'Female', 'Other' ή None."
         )
 
 
@@ -48,19 +48,18 @@ def validate_update_member(dto) -> None:
     dto: MemberDTO
     """
     if dto.full_name is not None and not is_non_empty(dto.full_name):
-        raise MemberValidationError("Full name cannot be blank.")
+        raise MemberValidationError("Το πλήρες όνομα δεν μπορεί να είναι κενό.")
 
-    # email/phone: only validate if a non-empty value is actually present
     if dto.email and not is_valid_email(dto.email):
-        raise MemberValidationError(f"Invalid email format: '{dto.email}'.")
+        raise MemberValidationError(f"Μη έγκυρη μορφή email: '{dto.email}'.")
 
     if dto.phone and not is_valid_phone(dto.phone):
-        raise MemberValidationError(f"Invalid phone number: '{dto.phone}'.")
+        raise MemberValidationError(f"Μη έγκυρος αριθμός τηλεφώνου: '{dto.phone}'.")
 
     if dto.age is not None and not is_valid_age(dto.age):
-        raise MemberValidationError("Age must be a non-negative integer.")
+        raise MemberValidationError("Η ηλικία πρέπει να είναι μη αρνητικός ακέραιος.")
 
     if dto.gender is not None and not is_valid_gender(dto.gender):
         raise MemberValidationError(
-            f"Invalid gender '{dto.gender}'. Must be 'Male', 'Female', 'Other', or None."
+            f"Μη έγκυρο φύλο '{dto.gender}'. Επιτρέπονται: 'Male', 'Female', 'Other' ή None."
         )
