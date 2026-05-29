@@ -76,7 +76,7 @@ class LibraryDAL:
                 (member_id,),
             ).fetchone()
             if active_loan:
-                raise ValueError("Cannot delete member with active loans.")
+                raise ValueError("Δεν είναι δυνατή η διαγραφή μέλους με ενεργούς δανεισμούς.")
 
             connection.execute("DELETE FROM members WHERE id = ?;", (member_id,))
 
@@ -87,7 +87,7 @@ class LibraryDAL:
                 (member_id,),
             ).fetchone()
             if active_loan:
-                raise ValueError("Cannot deactivate member with active loans.")
+                raise ValueError("Δεν είναι δυνατή η απενεργοποίηση μέλους με ενεργούς δανεισμούς.")
 
             connection.execute(
                 "UPDATE members SET status = 'inactive' WHERE id = ?;",
@@ -205,7 +205,7 @@ class LibraryDAL:
                 (category_id,),
             ).fetchone()
             if existing_books:
-                raise ValueError("Cannot delete category with books assigned to it.")
+                raise ValueError("Δεν είναι δυνατή η διαγραφή κατηγορίας με βιβλία που της έχουν ανατεθεί.")
 
             connection.execute("DELETE FROM categories WHERE id = ?;", (category_id,))
 
@@ -277,7 +277,7 @@ class LibraryDAL:
             ).fetchone()
 
             if not book:
-                raise ValueError("Book does not exist.")
+                raise ValueError("Το βιβλίο δεν υπάρχει.")
 
             borrowed_row = connection.execute(
                 "SELECT COUNT(*) AS cnt FROM loans WHERE book_id = ? AND status = 'borrowed';",
@@ -287,14 +287,14 @@ class LibraryDAL:
 
             new_total = int(dto.total_copies)
             if new_total < borrowed_count:
-                raise ValueError("Total copies cannot be less than currently borrowed copies.")
+                raise ValueError("Ο συνολικός αριθμός αντιτύπων δεν μπορεί να είναι μικρότερος από τα ήδη δανεισμένα.")
 
             if dto.available_copies is None:
                 new_available = min(int(book["available_copies"]), new_total)
             else:
                 new_available = int(dto.available_copies)
                 if new_available > new_total:
-                    raise ValueError("Available copies cannot exceed total copies.")
+                    raise ValueError("Τα διαθέσιμα αντίτυπα δεν μπορούν να υπερβαίνουν το σύνολο.")
 
             connection.execute(
                 "UPDATE books SET title = ?, author = ?, isbn = ?, category_id = ?, total_copies = ?, available_copies = ?, published_year = ? "
@@ -320,14 +320,14 @@ class LibraryDAL:
                 (book_id,),
             ).fetchone()
             if active_loan:
-                raise ValueError("Cannot delete book with active loans.")
+                raise ValueError("Δεν είναι δυνατή η διαγραφή βιβλίου με ενεργούς δανεισμούς.")
 
             any_loan_history = connection.execute(
                 "SELECT 1 FROM loans WHERE book_id = ? LIMIT 1;",
                 (book_id,),
             ).fetchone()
             if any_loan_history:
-                raise ValueError("Cannot delete book that has loan history.")
+                raise ValueError("Δεν είναι δυνατή η διαγραφή βιβλίου που έχει ιστορικό δανεισμών.")
 
             connection.execute("DELETE FROM ratings WHERE book_id = ?;", (book_id,))
             connection.execute("DELETE FROM books WHERE id = ?;", (book_id,))
@@ -436,7 +436,7 @@ class LibraryDAL:
             ).fetchone()
 
         if not row:
-            raise ValueError("Book does not exist.")
+            raise ValueError("Το βιβλίο δεν υπάρχει.")
 
         return int(row["available_copies"]) > 0
 
@@ -453,18 +453,18 @@ class LibraryDAL:
                 (dto.member_id,),
             ).fetchone()
             if not member:
-                raise ValueError("Member does not exist.")
+                raise ValueError("Το μέλος δεν υπάρχει.")
             if member["status"] != "active":
-                raise ValueError("Member is inactive.")
+                raise ValueError("Το μέλος είναι ανενεργό.")
 
             book = connection.execute(
                 "SELECT available_copies FROM books WHERE id = ?;",
                 (dto.book_id,),
             ).fetchone()
             if not book:
-                raise ValueError("Book does not exist.")
+                raise ValueError("Το βιβλίο δεν υπάρχει.")
             if int(book["available_copies"]) <= 0:
-                raise ValueError("Book is not available.")
+                raise ValueError("Το βιβλίο δεν είναι διαθέσιμο.")
 
             cursor = connection.execute(
                 "INSERT INTO loans (member_id, book_id, loan_date, due_date, status) "
@@ -494,9 +494,9 @@ class LibraryDAL:
             ).fetchone()
 
             if not loan:
-                raise ValueError("Loan does not exist.")
+                raise ValueError("Ο δανεισμός δεν υπάρχει.")
             if loan["status"] != "borrowed":
-                raise ValueError("Loan is already returned.")
+                raise ValueError("Ο δανεισμός έχει ήδη επιστραφεί.")
 
             connection.execute(
                 "UPDATE loans SET return_date = DATE('now'), status = 'returned' WHERE id = ?;",
